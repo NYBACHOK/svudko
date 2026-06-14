@@ -4,7 +4,11 @@ version = "0.1.0"
 license.workspace = true
 edition.workspace = true
 
-[dependencies]
-
 [lints]
 workspace = true
+
+[dependencies]
+rcgen = "0.14" # TODO: think about better way of generation
+rustls = "0.23"
+anyhow.workspace = true
+tokio = { workspace = true, features = ["fs"]}

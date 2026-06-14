@@ -13,6 +13,7 @@ use quinn::{
         pki_types::{CertificateDer, PrivatePkcs8KeyDer, pem::PemObject},
     },
 };
+use svudko_common::identity::load_or_generate_cert;
 
 #[derive(clap::Parser)]
 #[non_exhaustive]
@@ -52,7 +53,7 @@ async fn main() -> anyhow::Result<()> {
         ..
     } = <Args as clap::Parser>::parse();
 
-    let cert = load_or_generate_cert(&cert_file, &key_file)?;
+    let cert = load_or_generate_cert(&cert_file, &key_file).await?;
 
     match subcommand {
         Mode::Client(ClientArgs { connect_to }) => {
@@ -143,21 +144,4 @@ fn data_dir() -> PathBuf {
             dir
         })
     }
-}
-
-fn load_or_generate_cert(
-    cert_file: &PathBuf,
-    key_file: &PathBuf,
-) -> anyhow::Result<CertificateDer<'static>> {
-    if cert_file.exists() && key_file.exists() {
-        // Load from disk
-        let cert_pem = std::fs::read_to_string(cert_file)?;
-        return Ok(CertificateDer::from_pem_slice(cert_pem.as_bytes())?.into_owned());
-    }
-
-    // Generate if not exists
-    let cert = rcgen::generate_simple_self_signed(vec!["localhost".into()]).unwrap();
-    std::fs::write(cert_file, cert.cert.pem())?;
-    std::fs::write(key_file, cert.signing_key.serialize_pem())?;
-    Ok(cert.cert.into())
 }

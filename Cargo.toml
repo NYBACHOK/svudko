@@ -1,6 +1,6 @@
 [workspace]
 resolver = "3"
-members = ["svudko-cli"]
+members = ["svudko-cli", "svudko-common", "svudko-core"]
 
 [workspace.package]
 license = "MIT"

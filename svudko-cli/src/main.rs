@@ -2,7 +2,6 @@ use std::{
     net::{IpAddr, Ipv6Addr, SocketAddr},
     path::PathBuf,
     sync::{Arc, LazyLock},
-    time::Duration,
 };
 
 use anyhow::Context;
@@ -18,43 +17,62 @@ use quinn::{
 #[derive(clap::Parser)]
 #[non_exhaustive]
 struct Args {
-    #[arg(short, long, required = false, default_value_t = SocketAddr::new(IpAddr::V6(Ipv6Addr::LOCALHOST), 0))]
+    #[arg(short, long, global = true, required = false, default_value_t = SocketAddr::new(IpAddr::V6(Ipv6Addr::LOCALHOST), 0))]
     addr: SocketAddr,
 
-    #[arg(short, long, required = false)]
-    connect_to: Option<SocketAddr>,
+    #[command(subcommand)]
+    subcommand: Mode,
 
-    #[arg(long, required = false, default_value_os_t = APP_DATA_DIR.join("certificate.pem"))]
+    #[arg(long, global = true, required = false, default_value_os_t = APP_DATA_DIR.join("certificate.pem"))]
     cert_file: PathBuf,
 
-    #[arg(long, required = false, default_value_os_t = APP_DATA_DIR.join("private_key.pem"))]
+    #[arg(long, global = true, required = false, default_value_os_t = APP_DATA_DIR.join("private_key.pem"))]
     key_file: PathBuf,
+}
+
+#[derive(clap::Subcommand)]
+enum Mode {
+    Client(ClientArgs),
+    Server,
+}
+
+#[derive(clap::Args)]
+struct ClientArgs {
+    #[arg(required = true)]
+    connect_to: SocketAddr,
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let Args {
         addr,
-        connect_to,
         cert_file,
         key_file,
+        subcommand,
         ..
     } = <Args as clap::Parser>::parse();
 
     let cert = load_or_generate_cert(&cert_file, &key_file)?;
 
-    let server_config = configure_server(&cert, &key_file)?;
-    let client_cfg = configure_client(cert_file)?;
-    let mut endpoint = Endpoint::server(server_config, addr)?;
+    match subcommand {
+        Mode::Client(ClientArgs { connect_to }) => {
+            let client_cfg = configure_client(cert_file)?;
+            let mut endpoint = Endpoint::client(addr)?;
+            endpoint.set_default_client_config(client_cfg);
 
-    endpoint.set_default_client_config(client_cfg);
+            println!("Trying to connect");
+            let connection = endpoint.connect(connect_to, "localhost")?.await?;
 
-    tokio::spawn({
-        let endpoint = endpoint.clone();
-        println!("{}", endpoint.local_addr().unwrap());
+            println!("Connected! RTT: {}ms", connection.rtt().as_millis());
+        }
+        Mode::Server => {
+            let server_config = configure_server(&cert, &key_file)?;
+            let endpoint = Endpoint::server(server_config, addr)?;
 
-        async move {
-            println!("started accepting connections");
+            println!(
+                "started accepting connections at {}",
+                endpoint.local_addr()?
+            );
 
             loop {
                 if let Some(connection) = endpoint.accept().await {
@@ -65,24 +83,11 @@ async fn main() -> anyhow::Result<()> {
                         Err(e) => eprintln!("{e}"),
                     };
                 } else {
-                    return;
+                    break;
                 }
             }
         }
-    });
-
-    tokio::time::sleep(Duration::from_secs(2)).await;
-
-    if let Some(connect_to) = connect_to {
-        println!("Trying to connect");
-        let connection = endpoint.connect(connect_to, "localhost")?.await?;
-
-        println!("Connected! RTT: {}ms", connection.rtt().as_millis());
-    }
-
-    loop {
-        tokio::time::sleep(Duration::from_secs(1)).await;
-    }
+    };
 
     Ok(())
 }

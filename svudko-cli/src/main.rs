@@ -1,4 +1,5 @@
 use std::{
+    io::BufRead,
     net::{IpAddr, Ipv6Addr, SocketAddr},
     path::PathBuf,
     sync::{Arc, LazyLock},
@@ -6,7 +7,7 @@ use std::{
 
 use anyhow::Context;
 use svudko_common::quinn::{
-    ClientConfig, Endpoint, ServerConfig,
+    ClientConfig, Endpoint, ServerConfig, VarInt,
     crypto::rustls::QuicClientConfig,
     rustls::{
         self,
@@ -14,6 +15,7 @@ use svudko_common::quinn::{
     },
 };
 use svudko_common::{dummy_verification::SkipServerVerification, identity::load_or_generate_cert};
+use tokio::io::AsyncReadExt;
 
 const DEFAULT_SERVER_ADDR: SocketAddr = SocketAddr::new(IpAddr::V6(Ipv6Addr::LOCALHOST), 4443);
 
@@ -70,7 +72,27 @@ async fn main() -> anyhow::Result<()> {
             println!("Trying to connect");
             let connection = endpoint.connect(connect_to, "localhost")?.await?;
 
+            let mut stream = connection.open_uni().await?;
+
             println!("Connected! RTT: {}ms", connection.rtt().as_millis());
+
+            loop {
+                let in_std = std::io::stdin();
+
+                let mut input_lock = in_std.lock();
+
+                let mut buffer = String::new();
+
+                input_lock.read_line(&mut buffer)?;
+
+                stream.write(buffer.as_bytes()).await?;
+
+                stream.finish()?;
+
+                connection.closed().await;
+
+                break;
+            }
         }
         Mode::Server(ServerArgs { addr }) => {
             let server_config = configure_server(&cert, &key_file)?;
@@ -84,8 +106,18 @@ async fn main() -> anyhow::Result<()> {
             loop {
                 if let Some(connection) = endpoint.accept().await {
                     match connection.await {
-                        Ok(_connection) => {
-                            println!("Received connection")
+                        Ok(connection) => {
+                            println!("Received connection");
+
+                            let mut stream = connection.accept_uni().await?;
+
+                            let mut buffer = String::new();
+
+                            stream.read_to_string(&mut buffer).await?;
+
+                            println!("{}", buffer);
+
+                            connection.close(VarInt::from_u32(0), "finished".as_bytes());
                         }
                         Err(e) => eprintln!("{e}"),
                     };

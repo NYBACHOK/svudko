@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use anyhow::Context;
-use rustls::pki_types::{CertificateDer, pem::PemObject};
+use quinn::rustls::pki_types::{CertificateDer, pem::PemObject};
 
 pub const DOMAIN: &str = "app.sync.svudko";
 

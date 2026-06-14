@@ -5,7 +5,7 @@ use std::{
 };
 
 use anyhow::Context;
-use quinn::{
+use svudko_common::quinn::{
     ClientConfig, Endpoint, ServerConfig,
     crypto::rustls::QuicClientConfig,
     rustls::{
@@ -13,14 +13,13 @@ use quinn::{
         pki_types::{CertificateDer, PrivatePkcs8KeyDer, pem::PemObject},
     },
 };
-use svudko_common::identity::load_or_generate_cert;
+use svudko_common::{dummy_verification::SkipServerVerification, identity::load_or_generate_cert};
+
+const DEFAULT_SERVER_ADDR: SocketAddr = SocketAddr::new(IpAddr::V6(Ipv6Addr::LOCALHOST), 4443);
 
 #[derive(clap::Parser)]
 #[non_exhaustive]
 struct Args {
-    #[arg(short, long, global = true, required = false, default_value_t = SocketAddr::new(IpAddr::V6(Ipv6Addr::LOCALHOST), 0))]
-    addr: SocketAddr,
-
     #[command(subcommand)]
     subcommand: Mode,
 
@@ -34,19 +33,26 @@ struct Args {
 #[derive(clap::Subcommand)]
 enum Mode {
     Client(ClientArgs),
-    Server,
+    Server(ServerArgs),
 }
 
 #[derive(clap::Args)]
 struct ClientArgs {
-    #[arg(required = true)]
+    #[arg(short, long, required = false, default_value_t = SocketAddr::new(IpAddr::V6(Ipv6Addr::LOCALHOST), 0))]
+    addr: SocketAddr,
+    #[arg(required = false, default_value_t = DEFAULT_SERVER_ADDR)]
     connect_to: SocketAddr,
+}
+
+#[derive(clap::Args)]
+struct ServerArgs {
+    #[arg(short, long, required = false, default_value_t = DEFAULT_SERVER_ADDR)]
+    addr: SocketAddr,
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let Args {
-        addr,
         cert_file,
         key_file,
         subcommand,
@@ -56,7 +62,7 @@ async fn main() -> anyhow::Result<()> {
     let cert = load_or_generate_cert(&cert_file, &key_file).await?;
 
     match subcommand {
-        Mode::Client(ClientArgs { connect_to }) => {
+        Mode::Client(ClientArgs { connect_to, addr }) => {
             let client_cfg = configure_client(cert_file)?;
             let mut endpoint = Endpoint::client(addr)?;
             endpoint.set_default_client_config(client_cfg);
@@ -66,7 +72,7 @@ async fn main() -> anyhow::Result<()> {
 
             println!("Connected! RTT: {}ms", connection.rtt().as_millis());
         }
-        Mode::Server => {
+        Mode::Server(ServerArgs { addr }) => {
             let server_config = configure_server(&cert, &key_file)?;
             let endpoint = Endpoint::server(server_config, addr)?;
 
@@ -112,11 +118,13 @@ fn configure_client(cert_file: PathBuf) -> Result<ClientConfig, anyhow::Error> {
     certs.add(CertificateDer::from_pem_file(cert_file).context("failed load cert for client")?)?;
 
     let client_crypto = rustls::ClientConfig::builder()
-        .with_root_certificates(certs)
+        .dangerous()
+        .with_custom_certificate_verifier(SkipServerVerification::new())
         .with_no_client_auth();
 
-    let client_config =
-        quinn::ClientConfig::new(Arc::new(QuicClientConfig::try_from(client_crypto)?));
+    let client_config = svudko_common::quinn::ClientConfig::new(Arc::new(
+        QuicClientConfig::try_from(client_crypto)?,
+    ));
 
     Ok(client_config)
 }

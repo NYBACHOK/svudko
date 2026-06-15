@@ -3,21 +3,27 @@ use std::{
     net::{IpAddr, Ipv6Addr, SocketAddr},
     path::PathBuf,
     sync::{Arc, LazyLock},
+    time::Duration,
 };
 
 use anyhow::Context;
-use svudko_common::quinn::{
-    ClientConfig, Endpoint, ServerConfig, VarInt,
-    crypto::rustls::QuicClientConfig,
-    rustls::{
-        self,
-        pki_types::{CertificateDer, PrivatePkcs8KeyDer, pem::PemObject},
+use svudko_common::{
+    SERVER_PORT,
+    quinn::{
+        ClientConfig, Endpoint, ServerConfig, VarInt,
+        crypto::rustls::QuicClientConfig,
+        rustls::{
+            self,
+            pki_types::{CertificateDer, PrivatePkcs8KeyDer, pem::PemObject},
+        },
     },
 };
 use svudko_common::{dummy_verification::SkipServerVerification, identity::load_or_generate_cert};
+use svudko_core::{ApplicationCore, Event, resolvers::dns_sd::LocalDnsSdRequest};
 use tokio::io::AsyncReadExt;
 
-const DEFAULT_SERVER_ADDR: SocketAddr = SocketAddr::new(IpAddr::V6(Ipv6Addr::LOCALHOST), 4443);
+const DEFAULT_SERVER_ADDR: SocketAddr =
+    SocketAddr::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), SERVER_PORT);
 
 #[derive(clap::Parser)]
 #[non_exhaustive]
@@ -30,12 +36,16 @@ struct Args {
 
     #[arg(long, global = true, required = false, default_value_os_t = APP_DATA_DIR.join("private_key.pem"))]
     key_file: PathBuf,
+
+    #[arg(short, long, global = true, required = false, default_value_t = false)]
+    continue_running: bool,
 }
 
 #[derive(clap::Subcommand)]
 enum Mode {
     Client(ClientArgs),
     Server(ServerArgs),
+    Dns(DnsArgs),
 }
 
 #[derive(clap::Args)]
@@ -52,16 +62,34 @@ struct ServerArgs {
     addr: SocketAddr,
 }
 
+#[derive(clap::Args)]
+struct DnsArgs {
+    #[command(subcommand)]
+    subcommand: DnsSubcommand,
+}
+
+#[derive(clap::Subcommand)]
+enum DnsSubcommand {
+    StartService,
+    SearchForServices,
+    SearchByHostname { name: String },
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let Args {
         cert_file,
         key_file,
         subcommand,
+        mut continue_running,
         ..
     } = <Args as clap::Parser>::parse();
 
+    setup_logger();
+
     let cert = load_or_generate_cert(&cert_file, &key_file).await?;
+
+    let core = ApplicationCore::new();
 
     match subcommand {
         Mode::Client(ClientArgs { connect_to, addr }) => {
@@ -126,7 +154,25 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
         }
+        Mode::Dns(DnsArgs { subcommand }) => match subcommand {
+            DnsSubcommand::StartService => {
+                core.inner()
+                    .update(Event::Dns(LocalDnsSdRequest::EnableService));
+
+                continue_running = true;
+            }
+            DnsSubcommand::SearchForServices => core
+                .inner()
+                .update(Event::Dns(LocalDnsSdRequest::BrowseForService)),
+            DnsSubcommand::SearchByHostname { name } => core
+                .inner()
+                .update(Event::Dns(LocalDnsSdRequest::FindByHostname(name))),
+        },
     };
+
+    while continue_running {
+        tokio::time::sleep(Duration::from_secs(1)).await;
+    }
 
     Ok(())
 }
@@ -184,4 +230,29 @@ fn data_dir() -> PathBuf {
             dir
         })
     }
+}
+
+pub fn setup_logger() {
+    use tracing_subscriber::layer::SubscriberExt;
+    use tracing_subscriber::util::SubscriberInitExt;
+
+    #[allow(unused_mut)]
+    let mut registry = tracing_subscriber::registry()
+        .with(tracing_subscriber::fmt::layer())
+        .with(
+            tracing_subscriber::EnvFilter::builder()
+                .with_default_directive(
+                    match cfg!(debug_assertions) {
+                        true => tracing::Level::DEBUG,
+                        false => tracing::Level::INFO,
+                    }
+                    .into(),
+                )
+                .from_env()
+                .expect("default level is set")
+                .add_directive("hyper_util=warn".parse().unwrap())
+                .add_directive("reqwest=warn".parse().unwrap()),
+        );
+
+    registry.init();
 }

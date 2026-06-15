@@ -1,4 +1,4 @@
-use crux_core::App;
+use crux_core::{App, Command, command::NotificationBuilder, render::render};
 
 mod effect;
 mod event;
@@ -19,12 +19,30 @@ impl App for Application {
     fn update(
         &self,
         event: Self::Event,
-        model: &mut Self::Model,
+        _model: &mut Self::Model,
     ) -> crux_core::Command<Self::Effect, Self::Event> {
-        todo!()
+        match event {
+            Event::Error(e) => {
+                tracing::error!(err = %e, "error in core");
+
+                render()
+            }
+            Event::Dns(req) => Command::request_from_shell(req)
+                .map(|this| match this {
+                    Ok(res) => Event::DnsReponses(res),
+                    Err(err) => Event::Error(err.to_string()),
+                })
+                .then_notify(|event| NotificationBuilder::new(async |ctx| ctx.send_event(event)))
+                .build(),
+            Event::DnsReponses(res) => {
+                tracing::info!("dns response: {res:#?}");
+
+                render()
+            }
+        }
     }
 
-    fn view(&self, model: &Self::Model) -> Self::ViewModel {
-        todo!()
+    fn view(&self, _model: &Self::Model) -> Self::ViewModel {
+        Self::ViewModel {}
     }
 }

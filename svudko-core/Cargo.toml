@@ -16,13 +16,13 @@ required-features = ["codegen"]
 [dependencies]
 tracing.workspace = true
 thiserror.workspace = true
-serde.workspace = true
+# serde.workspace = true
 tokio = {workspace = true, features = ["full"]}
 dirs = "6"
 anyhow.workspace = true
 
 crux_core = "0.19"
-facet = "=0.44"
+# facet = "=0.44"
 
 svudko-common = { path = "../svudko-common"}
 mdns-sd = "0.20"

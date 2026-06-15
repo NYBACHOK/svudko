@@ -4,32 +4,26 @@ use std::{
 };
 
 use crux_core::capability::Operation;
-use facet::Facet;
+
 use mdns_sd::{
     DaemonEvent, HostnameResolutionEvent, Receiver, ResolvedService, ScopedIp, ServiceDaemon,
     ServiceInfo,
 };
-use serde::{Deserialize, Serialize};
 use svudko_common::{MDNS_SERVICE_PORT, MDNS_SERVICE_TYPE};
 
 use super::*;
 
 const OPERATION_TIMEOUT: Duration = Duration::from_secs(20);
 
-#[derive(Facet, Serialize, Deserialize, Clone, Debug, thiserror::Error)]
-#[repr(C)]
+#[derive(Clone, Debug, thiserror::Error)]
+
 pub enum DnsSdErrors {
-    #[serde(skip)]
     #[error(transparent)]
-    Mdns(
-        #[facet(opaque)]
-        #[from]
-        mdns_sd::Error,
-    ),
+    Mdns(#[from] mdns_sd::Error),
 }
 
-#[derive(Facet, Serialize, Deserialize, Clone, Debug)]
-#[repr(C)]
+#[derive(Clone, Debug)]
+
 pub enum LocalDnsSdRequest {
     EnableService,
     DisableService,
@@ -38,17 +32,13 @@ pub enum LocalDnsSdRequest {
     FindByHostname(String),
 }
 
-#[derive(Facet, Serialize, Deserialize, Clone, Debug)]
-#[repr(C)]
+#[derive(Clone, Debug)]
+
 pub enum LocalDnsSdResponse {
     Enabled,
     Disabled,
-    #[facet(skip)]
-    #[serde(skip)]
-    FoundServices(#[facet(opaque)] HashMap<String, Box<ResolvedService>>),
-    #[facet(skip)]
-    #[serde(skip)]
-    FoundIps(#[facet(opaque)] HashSet<ScopedIp>),
+    FoundServices(HashMap<String, Box<ResolvedService>>),
+    FoundIps(HashSet<ScopedIp>),
 }
 
 impl Operation for LocalDnsSdRequest {

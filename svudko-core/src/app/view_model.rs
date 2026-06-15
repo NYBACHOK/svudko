@@ -1,5 +1,2 @@
-use facet::Facet;
-use serde::{Deserialize, Serialize};
-
-#[derive(Facet, Serialize, Deserialize, Clone)]
+#[derive(Clone)]
 pub struct ViewModel {}

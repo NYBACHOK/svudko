@@ -2,8 +2,7 @@ use std::{
     io::BufRead,
     net::{IpAddr, Ipv6Addr, SocketAddr},
     path::PathBuf,
-    sync::{Arc, LazyLock},
-    time::Duration,
+    sync::{Arc, LazyLock, mpsc::Sender},
 };
 
 use anyhow::Context;
@@ -19,12 +18,13 @@ use svudko_common::{
     },
 };
 use svudko_common::{dummy_verification::SkipServerVerification, identity::load_or_generate_cert};
-use svudko_core::{ApplicationCore, Event, resolvers::dns_sd::LocalDnsSdRequest};
+use svudko_core::{ApplicationCore, CruxShell, Event, resolvers::dns_sd::LocalDnsSdRequest};
 use tokio::io::AsyncReadExt;
 
 const DEFAULT_SERVER_ADDR: SocketAddr =
     SocketAddr::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), SERVER_PORT);
 
+/// Debug cli to test different app functions without implementation of real app behavior
 #[derive(clap::Parser)]
 #[non_exhaustive]
 struct Args {
@@ -36,9 +36,6 @@ struct Args {
 
     #[arg(long, global = true, required = false, default_value_os_t = APP_DATA_DIR.join("private_key.pem"))]
     key_file: PathBuf,
-
-    #[arg(short, long, global = true, required = false, default_value_t = false)]
-    continue_running: bool,
 }
 
 #[derive(clap::Subcommand)]
@@ -75,13 +72,22 @@ enum DnsSubcommand {
     SearchByHostname { name: String },
 }
 
+struct CliShell {
+    tx: Sender<svudko_core::Effect>,
+}
+
+impl CruxShell for CliShell {
+    fn process_effects(&self, effect: svudko_core::Effect) {
+        let _ = self.tx.send(effect);
+    }
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let Args {
         cert_file,
         key_file,
         subcommand,
-        mut continue_running,
         ..
     } = <Args as clap::Parser>::parse();
 
@@ -89,7 +95,11 @@ async fn main() -> anyhow::Result<()> {
 
     let cert = load_or_generate_cert(&cert_file, &key_file).await?;
 
-    let core = ApplicationCore::new();
+    let (tx, rx) = std::sync::mpsc::channel();
+
+    let shell = Arc::new(CliShell { tx });
+
+    let core = ApplicationCore::new(Arc::clone(&shell));
 
     match subcommand {
         Mode::Client(ClientArgs { connect_to, addr }) => {
@@ -158,8 +168,6 @@ async fn main() -> anyhow::Result<()> {
             DnsSubcommand::StartService => {
                 core.inner()
                     .update(Event::Dns(LocalDnsSdRequest::EnableService));
-
-                continue_running = true;
             }
             DnsSubcommand::SearchForServices => core
                 .inner()
@@ -170,9 +178,7 @@ async fn main() -> anyhow::Result<()> {
         },
     };
 
-    while continue_running {
-        tokio::time::sleep(Duration::from_secs(1)).await;
-    }
+    while let Ok(_effect) = rx.recv() {}
 
     Ok(())
 }

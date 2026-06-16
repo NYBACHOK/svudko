@@ -13,7 +13,7 @@ anyhow.workspace = true
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["env-filter"]}
 
-svudko-common = { path = "../svudko-common"}
+svudko-common.workspace = true
 svudko-core = { path = "../svudko-core"}
 
  

@@ -1,0 +1,15 @@
+import { Button, VerticalBox } from "std-widgets.slint";
+
+struct ViewModel {}
+
+export component AppWindow inherits Window {
+    in-out property <ViewModel> model;
+    in-out property <string> error_msg;
+
+    min-width: 320px;
+    min-height: 400px;
+    preferred-width: 500px;
+    preferred-height: 600px;
+    title: "Svudko";
+    background: #f4f4f9;
+}

@@ -1994,7 +1994,6 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
- "dirs",
  "rcgen",
  "svudko-common",
  "svudko-core",
@@ -2008,9 +2007,11 @@ name = "svudko-common"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "dirs",
  "quinn",
  "rcgen",
  "tokio",
+ "tracing",
 ]
 
 [[package]]

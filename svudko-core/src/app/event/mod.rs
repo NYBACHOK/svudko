@@ -15,5 +15,6 @@ pub enum Event {
 #[derive(Clone, Debug)]
 pub enum CoreEvent {
     DnsReponses(LocalDnsSdEvent),
+    QuickConnection(ExchangeEvent),
     Error(String),
 }

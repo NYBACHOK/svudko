@@ -5,5 +5,5 @@ use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{TOKIO_RUNTIME, resolvers::HandlerResolver};
 
-pub mod connection;
+pub mod exchange;
 pub mod dns_sd;

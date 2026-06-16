@@ -1,4 +1,4 @@
-mod connection;
+mod exchange;
 mod dns;
 
-pub use self::{connection::*, dns::*};
+pub use self::{exchange::*, dns::*};

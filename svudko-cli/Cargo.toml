@@ -19,4 +19,3 @@ svudko-core = { path = "../svudko-core"}
  
 tokio = {workspace = true, features = ["full"]}
 rcgen = "0.14"
-dirs = "6"

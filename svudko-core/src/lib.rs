@@ -44,7 +44,7 @@ impl From<RustCoreEffect> for Effect {
 #[derive(Clone)]
 pub struct EffectRoutes {
     dns: Arc<handlers::dns_sd::Handler>,
-    connection: Arc<handlers::connection::Handler>,
+    connection: Arc<handlers::exchange::Handler>,
 }
 
 impl Routes<Application> for EffectRoutes {
@@ -54,9 +54,9 @@ impl Routes<Application> for EffectRoutes {
                 Weak::clone(&router),
                 resolvers::dns_sd::Resolver::new().unwrap(), // TODO:
             )),
-            connection: Arc::new(handlers::connection::Handler::new(
+            connection: Arc::new(handlers::exchange::Handler::new(
                 Weak::clone(&router),
-                resolvers::connection::Resolver::new(),
+                resolvers::exchange::Resolver::new().unwrap(),
             )),
         }
     }

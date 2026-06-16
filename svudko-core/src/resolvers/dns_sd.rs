@@ -16,7 +16,6 @@ use super::*;
 const OPERATION_TIMEOUT: Duration = Duration::from_secs(20);
 
 #[derive(Clone, Debug, thiserror::Error)]
-
 pub enum DnsSdErrors {
     #[error(transparent)]
     Mdns(#[from] mdns_sd::Error),

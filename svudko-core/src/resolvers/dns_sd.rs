@@ -11,6 +11,8 @@ use mdns_sd::{
 };
 use svudko_common::{MDNS_SERVICE_PORT, MDNS_SERVICE_TYPE};
 
+use crate::event::{LocalDnsSdEvent, LocalDnsSdRequest};
+
 use super::*;
 
 const OPERATION_TIMEOUT: Duration = Duration::from_secs(20);
@@ -20,29 +22,6 @@ const OPERATION_TIMEOUT: Duration = Duration::from_secs(20);
 pub enum DnsSdErrors {
     #[error(transparent)]
     Mdns(#[from] mdns_sd::Error),
-}
-
-#[derive(Clone, Debug)]
-
-pub enum LocalDnsSdRequest {
-    EnableService,
-    DisableService,
-
-    BrowseForService,
-    FindByHostname(String),
-}
-
-#[derive(Clone, Debug)]
-
-pub enum LocalDnsSdResponse {
-    Enabled,
-    Disabled,
-    FoundServices(HashMap<String, Box<ResolvedService>>),
-    FoundIps(HashSet<ScopedIp>),
-}
-
-impl Operation for LocalDnsSdRequest {
-    type Output = Result<LocalDnsSdResponse, DnsSdErrors>;
 }
 
 #[derive(Clone)]
@@ -75,22 +54,22 @@ impl HandlerResolver<LocalDnsSdRequest, <LocalDnsSdRequest as Operation>::Output
             LocalDnsSdRequest::EnableService => {
                 self.handle_enable_server()?;
 
-                Ok(LocalDnsSdResponse::Enabled)
+                Ok(LocalDnsSdEvent::Enabled)
             }
             LocalDnsSdRequest::DisableService => {
                 self.handle_disable_server().await?;
 
-                Ok(LocalDnsSdResponse::Disabled)
+                Ok(LocalDnsSdEvent::Disabled)
             }
             LocalDnsSdRequest::BrowseForService => {
                 let services = self.handle_browse().await?;
 
-                Ok(LocalDnsSdResponse::FoundServices(services))
+                Ok(LocalDnsSdEvent::FoundServices(services))
             }
             LocalDnsSdRequest::FindByHostname(hostname) => {
                 let ips = self.handle_search(&hostname).await?;
 
-                Ok(LocalDnsSdResponse::FoundIps(ips))
+                Ok(LocalDnsSdEvent::FoundIps(ips))
             }
         }
     }
@@ -129,10 +108,10 @@ impl Resolver {
         Ok(())
     }
 
-    async fn handle_disable_server(&mut self) -> Result<LocalDnsSdResponse, DnsSdErrors> {
+    async fn handle_disable_server(&mut self) -> Result<LocalDnsSdEvent, DnsSdErrors> {
         let fullname = match self.info.as_ref() {
             Some(info) => info.get_fullname(),
-            None => return Ok(LocalDnsSdResponse::Disabled),
+            None => return Ok(LocalDnsSdEvent::Disabled),
         };
 
         let rx = self.daemon.unregister(fullname)?;
@@ -144,7 +123,7 @@ impl Resolver {
             Err(_) => panic!("tried to fetch status of un-registration on disconnected channel"),
         };
 
-        Ok(LocalDnsSdResponse::Disabled)
+        Ok(LocalDnsSdEvent::Disabled)
     }
 
     async fn handle_browse(

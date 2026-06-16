@@ -1,10 +1,21 @@
 use crux_core::{Request, render::RenderOperation};
 
-use crate::resolvers::dns_sd::LocalDnsSdRequest;
+mod dns;
+mod error;
+
+use crate::event::LocalDnsSdRequest;
+
+pub use self::{dns::*, error::*};
 
 #[derive(Debug)]
 pub enum Effect {
     Render(Request<RenderOperation>),
+    Error(Request<CoreErrorEffect>),
+    Core(CoreEffect),
+}
+
+#[derive(Debug)]
+pub enum CoreEffect {
     DnsSd(Request<LocalDnsSdRequest>),
 }
 
@@ -18,6 +29,12 @@ impl From<Request<RenderOperation>> for Effect {
 
 impl From<Request<LocalDnsSdRequest>> for Effect {
     fn from(value: Request<LocalDnsSdRequest>) -> Self {
-        Self::DnsSd(value)
+        Self::Core(CoreEffect::DnsSd(value))
+    }
+}
+
+impl From<Request<CoreErrorEffect>> for Effect {
+    fn from(value: Request<CoreErrorEffect>) -> Self {
+        Self::Error(value)
     }
 }

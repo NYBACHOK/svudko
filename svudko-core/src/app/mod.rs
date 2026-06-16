@@ -1,11 +1,11 @@
 use crux_core::{App, Command, command::NotificationBuilder, render::render};
 
-mod effect;
-mod event;
+pub mod effect;
+pub mod event;
 mod model;
-mod view_model;
+pub mod view_model;
 
-pub use self::{effect::*, event::*, model::*, view_model::*};
+use self::{effect::*, event::*, model::*, view_model::*};
 
 #[derive(Default)]
 pub struct Application;
@@ -22,23 +22,26 @@ impl App for Application {
         _model: &mut Self::Model,
     ) -> crux_core::Command<Self::Effect, Self::Event> {
         match event {
-            Event::Error(e) => {
-                tracing::error!(err = %e, "error in core");
-
-                render()
-            }
             Event::Dns(req) => Command::request_from_shell(req)
                 .map(|this| match this {
-                    Ok(res) => Event::DnsReponses(res),
-                    Err(err) => Event::Error(err.to_string()),
+                    Ok(res) => Event::Core(CoreEvent::DnsReponses(res)),
+                    Err(err) => Event::Core(CoreEvent::Error(err.to_string())),
                 })
                 .then_notify(|event| NotificationBuilder::new(async |ctx| ctx.send_event(event)))
                 .build(),
-            Event::DnsReponses(res) => {
-                tracing::info!("dns response: {res:#?}");
 
-                render()
-            }
+            Event::Core(core_event) => match core_event {
+                CoreEvent::DnsReponses(res) => {
+                    tracing::info!("dns response: {res:#?}");
+
+                    render()
+                }
+                CoreEvent::Error(e) => {
+                    tracing::error!(err = %e, "error in core");
+
+                    Command::notify_shell(CoreErrorEffect(e)).build()
+                }
+            },
         }
     }
 

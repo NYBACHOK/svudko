@@ -14,7 +14,9 @@ pub mod resolvers;
 pub use app::*;
 pub use crux_core::App;
 
-use crate::{handlers::local_dns_sd::LocalDnsHandler, resolvers::dns_sd};
+use crate::{app::effect::CoreEffect, handlers::local_dns_sd::LocalDnsHandler, resolvers::dns_sd};
+
+use crate::app::effect::Effect as RustCoreEffect;
 
 static TOKIO_RUNTIME: LazyLock<Runtime> =
     LazyLock::new(|| tokio::runtime::Runtime::new().expect("failed to init runtime"));
@@ -26,13 +28,15 @@ pub trait CruxShell {
 #[derive(Debug)]
 pub enum Effect {
     Render(RenderOperation),
+    Error(String),
 }
 
-impl From<crate::app::Effect> for Effect {
-    fn from(value: crate::app::Effect) -> Self {
+impl From<RustCoreEffect> for Effect {
+    fn from(value: RustCoreEffect) -> Self {
         match value {
-            app::Effect::Render(request) => Self::Render(request.operation),
-            app::Effect::DnsSd(_) => unreachable!("handled by router"),
+            RustCoreEffect::Render(request) => Self::Render(request.operation),
+            RustCoreEffect::Error(e) => Self::Error(e.operation.0),
+            RustCoreEffect::Core(_) => unreachable!("effect handled by core"),
         }
     }
 }
@@ -61,7 +65,7 @@ impl ApplicationCore {
     pub fn new<T: CruxShell + Send + Sync + 'static>(shell: Arc<T>) -> Self {
         let router = EffectRouter::new(crux_core::Core::new(), move |routes: EffectRoutes| {
             move |effect| match effect {
-                crate::app::Effect::DnsSd(request) => routes.dns.process(request),
+                RustCoreEffect::Core(CoreEffect::DnsSd(request)) => routes.dns.process(request),
                 effect => shell.process_effects(effect.into()),
             }
         });

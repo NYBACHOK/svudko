@@ -18,7 +18,10 @@ use svudko_common::{
     },
 };
 use svudko_common::{dummy_verification::SkipServerVerification, identity::load_or_generate_cert};
-use svudko_core::{ApplicationCore, CruxShell, Event, resolvers::dns_sd::LocalDnsSdRequest};
+use svudko_core::{
+    ApplicationCore, CruxShell,
+    event::{Event, LocalDnsSdRequest},
+};
 use tokio::io::AsyncReadExt;
 
 const DEFAULT_SERVER_ADDR: SocketAddr =

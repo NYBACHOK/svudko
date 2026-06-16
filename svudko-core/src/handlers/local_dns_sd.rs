@@ -4,7 +4,7 @@ use crux_core::{Request, capability::Operation, effects::ResolveSink};
 
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::resolvers::dns_sd::LocalDnsSdRequest;
+use crate::event::LocalDnsSdRequest;
 
 use super::*;
 

@@ -14,7 +14,7 @@ pub mod resolvers;
 pub use app::*;
 pub use crux_core::App;
 
-use crate::{app::effect::CoreEffect, handlers::local_dns_sd::LocalDnsHandler, resolvers::dns_sd};
+use crate::app::effect::CoreEffect;
 
 use crate::app::effect::Effect as RustCoreEffect;
 
@@ -43,15 +43,20 @@ impl From<RustCoreEffect> for Effect {
 
 #[derive(Clone)]
 pub struct EffectRoutes {
-    dns: Arc<LocalDnsHandler>,
+    dns: Arc<handlers::dns_sd::Handler>,
+    connection: Arc<handlers::connection::Handler>,
 }
 
 impl Routes<Application> for EffectRoutes {
     fn new(router: std::sync::Weak<EffectRouter<Application, Self>>) -> Self {
         Self {
-            dns: Arc::new(LocalDnsHandler::new(
+            dns: Arc::new(handlers::dns_sd::Handler::new(
                 Weak::clone(&router),
-                dns_sd::Resolver::new().unwrap(), // TODO:
+                resolvers::dns_sd::Resolver::new().unwrap(), // TODO:
+            )),
+            connection: Arc::new(handlers::connection::Handler::new(
+                Weak::clone(&router),
+                resolvers::connection::Resolver::new(),
             )),
         }
     }
@@ -66,6 +71,9 @@ impl ApplicationCore {
         let router = EffectRouter::new(crux_core::Core::new(), move |routes: EffectRoutes| {
             move |effect| match effect {
                 RustCoreEffect::Core(CoreEffect::DnsSd(request)) => routes.dns.process(request),
+                RustCoreEffect::Core(CoreEffect::Connection(request)) => {
+                    routes.connection.process(request)
+                }
                 effect => shell.process_effects(effect.into()),
             }
         });

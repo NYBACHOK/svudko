@@ -3,8 +3,6 @@ use std::{
     time::Duration,
 };
 
-use crux_core::capability::Operation;
-
 use mdns_sd::{
     DaemonEvent, HostnameResolutionEvent, Receiver, ResolvedService, ScopedIp, ServiceDaemon,
     ServiceInfo,

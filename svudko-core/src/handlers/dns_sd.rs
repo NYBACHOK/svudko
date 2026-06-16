@@ -1,18 +1,12 @@
-use std::sync::Weak;
-
-use crux_core::{Request, capability::Operation, effects::ResolveSink};
-
-use tokio::sync::mpsc::UnboundedSender;
-
 use crate::event::LocalDnsSdRequest;
 
 use super::*;
 
-pub struct LocalDnsHandler {
+pub struct Handler {
     jobs_tx: UnboundedSender<Request<LocalDnsSdRequest>>,
 }
 
-impl LocalDnsHandler {
+impl Handler {
     pub fn new<R, I>(sink: Weak<R>, mut operator: I) -> Self
     where
         R: ResolveSink<LocalDnsSdRequest> + Send + Sync + 'static,
@@ -28,7 +22,7 @@ impl LocalDnsHandler {
 
                     if let Some(sink) = sink.upgrade() {
                         sink.resolve_request(&mut request, output)
-                            .expect("background file store resolve should succeed");
+                            .expect("store resolve should succeed");
                     }
                 }
             }
@@ -38,8 +32,6 @@ impl LocalDnsHandler {
     }
 
     pub fn process(&self, request: Request<LocalDnsSdRequest>) {
-        self.jobs_tx
-            .send(request)
-            .expect("LocalDnsHandler worker disconnected");
+        self.jobs_tx.send(request).expect("worker disconnected");
     }
 }

@@ -1,3 +1,6 @@
+use crux_core::capability::Operation;
+
+pub mod connection;
 pub mod dns_sd;
 
 pub trait HandlerResolver<Op, Out>: Send + Sync + 'static {

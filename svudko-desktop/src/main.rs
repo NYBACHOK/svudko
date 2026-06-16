@@ -4,24 +4,22 @@
 use std::{error::Error, sync::Arc};
 
 use slint::ToSharedString;
-use smol::channel::Sender;
-use svudko_core::{ApplicationCore, CruxShell, Effect};
+use svudko_core::{
+    ApplicationCore, Effect,
+    event::{Event, LocalDnsSdRequest},
+};
 
 slint::include_modules!();
 
-struct SlintShell {
-    tx: Sender<svudko_core::Effect>,
-}
+mod shell;
 
-impl CruxShell for SlintShell {
-    fn process_effects(&self, effect: svudko_core::Effect) {
-        let _ = self.tx.send(effect);
-    }
-}
+use self::shell::*;
 
 impl From<svudko_core::view_model::ViewModel> for ViewModel {
-    fn from(svudko_core::view_model::ViewModel {}: svudko_core::view_model::ViewModel) -> Self {
-        Self {}
+    fn from(
+        svudko_core::view_model::ViewModel { enabled_discover }: svudko_core::view_model::ViewModel,
+    ) -> Self {
+        Self { enabled_discover }
     }
 }
 
@@ -30,9 +28,14 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let (tx, rx) = smol::channel::unbounded();
 
-    let core = Arc::new(ApplicationCore::new(Arc::new(SlintShell { tx })));
-
     let app = AppWindow::new()?;
+
+    let core = Arc::new(ApplicationCore::new(Arc::new(SlintShell {
+        tx,
+        app: app.as_weak(),
+    })));
+
+    app.set_model(core.inner().view().into());
 
     let _ = slint::spawn_local({
         let app = app.clone_strong();
@@ -51,6 +54,24 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
             }
         }
+    })?;
+
+    app.on_enable_discover({
+        let core = Arc::clone(&core);
+
+        move || {
+            core.inner()
+                .update(Event::Dns(LocalDnsSdRequest::EnableService));
+        }
+    });
+
+    app.on_disable_discover({
+        let core = Arc::clone(&core);
+
+        move || {
+            core.inner()
+                .update(Event::Dns(LocalDnsSdRequest::DisableService));
+        }
     });
 
     app.run()?;
@@ -62,8 +83,7 @@ pub fn setup_logger() {
     use tracing_subscriber::layer::SubscriberExt;
     use tracing_subscriber::util::SubscriberInitExt;
 
-    #[allow(unused_mut)]
-    let mut registry = tracing_subscriber::registry()
+    let registry = tracing_subscriber::registry()
         .with(tracing_subscriber::fmt::layer())
         .with(
             tracing_subscriber::EnvFilter::builder()

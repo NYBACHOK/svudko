@@ -41,8 +41,14 @@ impl App for Application {
         }
     }
 
-    fn view(&self, _model: &Self::Model) -> Self::ViewModel {
-        Self::ViewModel {}
+    fn view(&self, model: &Self::Model) -> Self::ViewModel {
+        let view = Self::ViewModel {
+            enabled_discover: model.dns_sd.enabled_discover,
+        };
+
+        tracing::debug!(view = ?view);
+
+        view
     }
 }
 

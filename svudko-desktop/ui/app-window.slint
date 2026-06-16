@@ -1,15 +1,56 @@
-import { Button, VerticalBox } from "std-widgets.slint";
+import { Button, VerticalBox, HorizontalBox } from "std-widgets.slint";
 
-struct ViewModel {}
+struct ViewModel {
+    enabled_discover: bool,
+}
 
 export component AppWindow inherits Window {
     in-out property <ViewModel> model;
-    in-out property <string> error_msg;
+    in-out property <string> error_msg: "";
+
+    callback enable_discover();
+    callback disable_discover();
 
     min-width: 320px;
     min-height: 400px;
     preferred-width: 500px;
     preferred-height: 600px;
     title: "Svudko";
-    background: #f4f4f9;
+    background: #17171a;
+
+    VerticalLayout {
+        HorizontalBox {
+            if (model.enabled-discover): Text {
+                text: "Made this PC available to other clients";
+            }
+        }
+
+        HorizontalBox {
+            VerticalBox {
+                Button {
+                    text: "Enable Discover";
+                    clicked => {
+                        enable_discover()
+                    }
+                }
+
+                Button {
+                    text: "Disable Discover";
+                    clicked => {
+                        disable_discover()
+                    }
+                }
+            }
+        }
+
+        if (error_msg != ""): HorizontalBox {
+            Text {
+                text: error_msg;
+                horizontal-alignment: center;
+                vertical-alignment: bottom;
+                font-size: 20px;
+                color: #d82222;
+            }
+        }
+    }
 }

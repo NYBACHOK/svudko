@@ -84,16 +84,5 @@ pub async fn endpoint(addr: SocketAddr) -> anyhow::Result<Endpoint> {
     let mut endpoint = Endpoint::server(server_cfg, addr)?;
     endpoint.set_default_client_config(client_cfg);
 
-    tokio::spawn({
-        let endpoint = endpoint.clone();
-
-        async move {
-            while let Some(connection) = endpoint.accept().await {
-                let connection = connection.await.unwrap();
-                tracing::info!("connected");
-            }
-        }
-    });
-
     Ok(endpoint)
 }

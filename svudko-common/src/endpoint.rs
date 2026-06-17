@@ -70,6 +70,10 @@ pub async fn load_or_generate_cert(
 }
 
 pub async fn endpoint(addr: SocketAddr) -> anyhow::Result<Endpoint> {
+    if !APP_DATA_DIR.exists() {
+        tokio::fs::create_dir_all(&*APP_DATA_DIR).await?;
+    }
+
     let cert_file = APP_DATA_DIR.join("certificate.pem");
     let key_file = APP_DATA_DIR.join("private_key.pem");
     let cert = load_or_generate_cert(&cert_file, &key_file).await?;
@@ -83,7 +87,12 @@ pub async fn endpoint(addr: SocketAddr) -> anyhow::Result<Endpoint> {
     tokio::spawn({
         let endpoint = endpoint.clone();
 
-        async move { while let Some(connection) = endpoint.accept().await {} }
+        async move {
+            while let Some(connection) = endpoint.accept().await {
+                let connection = connection.await.unwrap();
+                tracing::info!("connected");
+            }
+        }
     });
 
     Ok(endpoint)

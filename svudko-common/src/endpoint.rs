@@ -87,7 +87,12 @@ pub async fn endpoint(addr: SocketAddr) -> anyhow::Result<Endpoint> {
     tokio::spawn({
         let endpoint = endpoint.clone();
 
-        async move { while let Some(connection) = endpoint.accept().await {} }
+        async move {
+            while let Some(connection) = endpoint.accept().await {
+                let connection = connection.await.unwrap();
+                tracing::info!("connected");
+            }
+        }
     });
 
     Ok(endpoint)

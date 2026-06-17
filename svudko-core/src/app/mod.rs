@@ -38,7 +38,7 @@ impl App for Application {
                     .unwrap()
                     .addresses
                     .iter()
-                    .find(|this| this.is_ipv6())
+                    .find(|this| this.is_ipv4())
                     .unwrap()
                     .to_ip_addr();
 

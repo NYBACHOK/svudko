@@ -9,6 +9,7 @@ workspace = true
 
 [dependencies]
 quinn.workspace = true
+crux_core.workspace = true
 anyhow.workspace = true
 tokio = { workspace = true, features = []}
 dirs = "6"

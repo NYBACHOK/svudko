@@ -29,8 +29,17 @@ pub struct SdResolver {
     info: Option<ServiceInfo>,
 }
 
-impl HandlerResolver<LocalDnsSdRequest, <LocalDnsSdRequest as Operation>::Output> for SdResolver {
+impl std::fmt::Debug for SdResolver {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SdResolver")
+            .field("info", &self.info)
+            .finish()
+    }
+}
+
+impl HandlerResolver for SdResolver {
     type Opt = ();
+    type Op = LocalDnsSdRequest;
     type Err = DnsSdErrors;
 
     fn new(_: Self::Opt) -> Result<Self, Self::Err>
@@ -53,7 +62,7 @@ impl HandlerResolver<LocalDnsSdRequest, <LocalDnsSdRequest as Operation>::Output
     async fn resolve(
         &mut self,
         op: &LocalDnsSdRequest,
-    ) -> <LocalDnsSdRequest as Operation>::Output {
+    ) -> Result<<Self::Op as Operation>::Output, Self::Err> {
         match op {
             LocalDnsSdRequest::EnableService => {
                 self.handle_enable_server()?;

@@ -19,20 +19,34 @@ pub enum ExchangeErrors {
     Connection(#[from] quinn::ConnectionError),
     #[error(transparent)]
     Connect(#[from] quinn::ConnectError),
+    #[error("{0}")]
+    Io(String),
     #[error(transparent)]
-    Tmp(#[from] anyhow::Error),
+    Tls(#[from] quinn::rustls::pki_types::pem::Error),
+    #[error(transparent)]
+    Rustls(#[from] quinn::rustls::Error),
+    #[error(transparent)]
+    NoInitialCipherSuite(#[from] quinn::crypto::rustls::NoInitialCipherSuite),
+    #[error(transparent)]
+    Rcgen(#[from] rcgen::Error),
 }
 
-#[derive(Clone)]
+impl From<std::io::Error> for ExchangeErrors {
+    fn from(value: std::io::Error) -> Self {
+        Self::Io(value.to_string())
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct ExchangeResolver {
     endpoint: Endpoint,
     connections: HashMap<String, Connection>,
 }
 
-impl HandlerResolver<ExchangeCoreRequest, <ExchangeCoreRequest as Operation>::Output>
-    for ExchangeResolver
-{
+impl HandlerResolver for ExchangeResolver {
     type Opt = ();
+
+    type Op = ExchangeCoreRequest;
 
     type Err = ExchangeErrors;
 
@@ -46,10 +60,7 @@ impl HandlerResolver<ExchangeCoreRequest, <ExchangeCoreRequest as Operation>::Ou
         })
     }
 
-    async fn resolve(
-        &mut self,
-        op: &ExchangeCoreRequest,
-    ) -> <ExchangeCoreRequest as Operation>::Output {
+    async fn resolve(&mut self, op: &ExchangeCoreRequest) -> Result<<Self::Op as Operation>::Output, Self::Err> {
         let event = match op {
             ExchangeCoreRequest::Connect((ip_addr, hostname)) => self
                 .handle_connect(*ip_addr, hostname)

@@ -5,16 +5,16 @@ use crux_core::{
     render::RenderOperation,
 };
 use svudko_common::resolver::HandlerResolver;
-use svudko_resolver_exchange::ExchangeResolver;
-use svudko_resolver_sd::SdResolver;
+use svudko_resolver_exchange::{ExchangeResolver, request::ExchangeCoreRequest};
+use svudko_resolver_sd::{SdResolver, request::LocalDnsSdRequest};
 
 mod app;
-mod handlers;
+mod handler;
 
 pub use app::*;
 pub use crux_core::App;
 
-use crate::app::effect::CoreEffect;
+use crate::{app::effect::CoreEffect, handler::Handler};
 
 use crate::app::effect::Effect as RustCoreEffect;
 
@@ -40,20 +40,17 @@ impl From<RustCoreEffect> for Effect {
 
 #[derive(Clone)]
 pub struct EffectRoutes {
-    dns: Arc<handlers::dns_sd::Handler>,
-    connection: Arc<handlers::exchange::Handler>,
+    dns: Arc<Handler<LocalDnsSdRequest>>,
+    connection: Arc<Handler<ExchangeCoreRequest>>,
 }
 
 impl Routes<Application> for EffectRoutes {
     fn new(router: std::sync::Weak<EffectRouter<Application, Self>>) -> Self {
         Self {
-            dns: Arc::new(handlers::dns_sd::Handler::new(
+            dns: Arc::new(Handler::new(Weak::clone(&router), SdResolver::new(()))),
+            connection: Arc::new(Handler::new(
                 Weak::clone(&router),
-                SdResolver::new(()).unwrap(), // TODO:
-            )),
-            connection: Arc::new(handlers::exchange::Handler::new(
-                Weak::clone(&router),
-                ExchangeResolver::new(()).unwrap(), // todo
+                ExchangeResolver::new(()),
             )),
         }
     }

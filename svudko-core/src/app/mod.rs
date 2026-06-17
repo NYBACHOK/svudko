@@ -25,10 +25,7 @@ impl App for Application {
     ) -> crux_core::Command<Self::Effect, Self::Event> {
         match event {
             Event::Dns(req) => Command::request_from_shell(req)
-                .map(|this| match this {
-                    Ok(res) => Event::Core(CoreEvent::DnsReponses(res)),
-                    Err(err) => Event::Core(CoreEvent::Error(err.to_string())),
-                })
+                .map(|this| Event::Core(CoreEvent::DnsReponses(this)))
                 .then_notify(|event| NotificationBuilder::new(async |ctx| ctx.send_event(event)))
                 .build(),
             Event::Exchange(ExchangeRequest::Connect(hostname)) => {
@@ -45,10 +42,7 @@ impl App for Application {
                     .to_ip_addr();
 
                 Command::request_from_shell(ExchangeCoreRequest::Connect((addr, hostname)))
-                    .map(|this| match this {
-                        Ok(res) => Event::Core(CoreEvent::Exchange(res)),
-                        Err(err) => Event::Core(CoreEvent::Error(err.to_string())),
-                    })
+                    .map(|this| Event::Core(CoreEvent::Exchange(this)))
                     .then_notify(|event| {
                         NotificationBuilder::new(async |ctx| ctx.send_event(event))
                     })

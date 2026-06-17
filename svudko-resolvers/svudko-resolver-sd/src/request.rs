@@ -1,6 +1,6 @@
 use crux_core::capability::Operation;
 
-use crate::{DnsSdErrors, event::LocalDnsSdEvent};
+use crate::event::LocalDnsSdEvent;
 
 #[derive(Clone, Debug)]
 pub enum LocalDnsSdRequest {
@@ -11,5 +11,5 @@ pub enum LocalDnsSdRequest {
 }
 
 impl Operation for LocalDnsSdRequest {
-    type Output = Result<LocalDnsSdEvent, DnsSdErrors>;
+    type Output = LocalDnsSdEvent;
 }

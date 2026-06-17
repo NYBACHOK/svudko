@@ -4,7 +4,6 @@ use std::{
     sync::Arc,
 };
 
-use anyhow::Context;
 use quinn::{
     ClientConfig, Endpoint, ServerConfig,
     crypto::rustls::QuicClientConfig,
@@ -14,12 +13,14 @@ use quinn::{
     },
 };
 use svudko_common::{APP_DATA_DIR, dummy_verification::SkipServerVerification};
+
+use crate::ExchangeErrors;
 pub const DOMAIN: &str = "app.sync.svudko";
 
 fn configure_server(
     cert_der: &CertificateDer<'static>,
     key_file: &PathBuf,
-) -> Result<ServerConfig, anyhow::Error> {
+) -> Result<ServerConfig, ExchangeErrors> {
     let priv_key = PrivatePkcs8KeyDer::from_pem_file(key_file)?;
 
     let mut server_config =
@@ -30,9 +31,9 @@ fn configure_server(
     Ok(server_config)
 }
 
-fn configure_client(cert_file: PathBuf) -> Result<ClientConfig, anyhow::Error> {
+fn configure_client(cert_file: PathBuf) -> Result<ClientConfig, ExchangeErrors> {
     let mut certs = rustls::RootCertStore::empty();
-    certs.add(CertificateDer::from_pem_file(cert_file).context("failed load cert for client")?)?;
+    certs.add(CertificateDer::from_pem_file(cert_file)?)?;
 
     let client_crypto = rustls::ClientConfig::builder()
         .dangerous()
@@ -47,27 +48,26 @@ fn configure_client(cert_file: PathBuf) -> Result<ClientConfig, anyhow::Error> {
 pub async fn load_or_generate_cert(
     cert_file: &Path,
     key_file: &Path,
-) -> anyhow::Result<CertificateDer<'static>> {
+) -> Result<CertificateDer<'static>, ExchangeErrors> {
     if cert_file.exists() && key_file.exists() {
         let cert_pem = std::fs::read_to_string(cert_file)?;
         return Ok(CertificateDer::from_pem_slice(cert_pem.as_bytes())?.into_owned());
     }
 
-    let cert = rcgen::generate_simple_self_signed(vec!["localhost".to_owned(), DOMAIN.to_owned()])
-        .context("failed to generate self-signed certificate")?;
+    let cert = rcgen::generate_simple_self_signed(vec!["localhost".to_owned(), DOMAIN.to_owned()])?;
 
     let (write_cert, write_signing) = tokio::join!(
         tokio::fs::write(cert_file, cert.cert.pem()),
         tokio::fs::write(key_file, cert.signing_key.serialize_pem())
     );
 
-    write_cert.context("failed to write certificate")?;
-    write_signing.context("failed to write signing key")?;
+    write_cert?;
+    write_signing?;
 
     Ok(cert.cert.into())
 }
 
-pub async fn endpoint(addr: SocketAddr) -> anyhow::Result<Endpoint> {
+pub async fn endpoint(addr: SocketAddr) -> Result<Endpoint, ExchangeErrors> {
     if !APP_DATA_DIR.exists() {
         tokio::fs::create_dir_all(&*APP_DATA_DIR).await?;
     }

@@ -14,5 +14,4 @@ svudko-common.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 thiserror.workspace = true
-anyhow.workspace = true
 quinn.workspace = true

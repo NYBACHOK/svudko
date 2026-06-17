@@ -5447,6 +5447,7 @@ name = "svudko-common"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "crux_core",
  "dirs",
  "quinn",
  "tokio",
@@ -5490,7 +5491,6 @@ dependencies = [
 name = "svudko-resolver-exchange"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "crux_core",
  "quinn",
  "rcgen",

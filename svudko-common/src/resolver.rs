@@ -1,10 +1,19 @@
-pub trait HandlerResolver<Op, Out>: Send + Sync + 'static {
+use crux_core::capability::Operation;
+
+pub trait HandlerResolver: Send + Sync + 'static {
+    /// Options to pass during resolver creation
     type Opt;
-    type Err;
+    /// Crux operation
+    type Op: Operation;
+    /// Error returned during processing or creation
+    type Err: std::error::Error;
 
     fn new(opt: Self::Opt) -> Result<Self, Self::Err>
     where
         Self: Sized;
 
-    fn resolve(&mut self, op: &Op) -> impl Future<Output = Out> + Send + Sync;
+    fn resolve(
+        &mut self,
+        op: &Self::Op,
+    ) -> impl Future<Output = Result<<Self::Op as Operation>::Output, Self::Err>> + Send + Sync;
 }

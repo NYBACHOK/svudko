@@ -2,7 +2,7 @@ use std::net::IpAddr;
 
 use crux_core::capability::Operation;
 
-use crate::{ExchangeErrors, event::ExchangeEvent};
+use crate::event::ExchangeEvent;
 
 #[derive(Clone, Debug)]
 pub enum ExchangeCoreRequest {
@@ -10,5 +10,5 @@ pub enum ExchangeCoreRequest {
 }
 
 impl Operation for ExchangeCoreRequest {
-    type Output = Result<ExchangeEvent, ExchangeErrors>;
+    type Output = ExchangeEvent;
 }

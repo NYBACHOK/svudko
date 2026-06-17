@@ -1,7 +1,8 @@
-import { Button, VerticalBox, HorizontalBox } from "std-widgets.slint";
+import { Button, VerticalBox, HorizontalBox, ListView } from "std-widgets.slint";
 
 struct ViewModel {
     enabled_discover: bool,
+    discovered_hosts: [string],
 }
 
 export component AppWindow inherits Window {
@@ -11,17 +12,34 @@ export component AppWindow inherits Window {
     callback enable_discover();
     callback disable_discover();
 
-    min-width: 320px;
-    min-height: 400px;
-    preferred-width: 500px;
-    preferred-height: 600px;
+    callback start_scan();
+    callback connect_to_host(string);
+
+    min-width: 360px;
+    min-height: 500px;
     title: "Svudko";
     background: #17171a;
 
     VerticalLayout {
+        ListView {
+            for host[i] in model.discovered-hosts : HorizontalBox {
+                Text {
+                    text: host;
+                    vertical-alignment: center;
+                    color: #ffffff;
+                }
+                Button {
+                    text: "Connect";
+                    clicked => {
+                        root.connect_to_host(host);
+                    }
+                }
+            }
+        }
+
         HorizontalBox {
             if (model.enabled-discover): Text {
-                text: "Made this PC available to other clients";
+                text: "Made this PC available in Network";
             }
         }
 
@@ -39,6 +57,16 @@ export component AppWindow inherits Window {
                     text: "Disable Discover";
                     clicked => {
                         disable_discover()
+                    }
+                }
+            }
+
+            VerticalBox {
+                height: 20%;
+                Button {
+                    text: "Scan";
+                    clicked => {
+                        start_scan()
                     }
                 }
             }

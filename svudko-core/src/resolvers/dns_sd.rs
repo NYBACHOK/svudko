@@ -58,7 +58,7 @@ impl HandlerResolver<LocalDnsSdRequest, <LocalDnsSdRequest as Operation>::Output
 
                 Ok(LocalDnsSdEvent::Disabled)
             }
-            LocalDnsSdRequest::BrowseForService => {
+            LocalDnsSdRequest::BrowseForServices => {
                 let services = self.handle_browse().await?;
 
                 Ok(LocalDnsSdEvent::FoundServices(services))

@@ -1,12 +1,12 @@
 // Prevent console window in addition to Slint window in Windows release builds when, e.g., starting the app via file manager. Ignored on other platforms.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{error::Error, sync::Arc};
+use std::{error::Error, rc::Rc, sync::Arc};
 
-use slint::ToSharedString;
+use slint::{ModelRc, SharedString, ToSharedString, VecModel};
 use svudko_core::{
     ApplicationCore, Effect,
-    event::{Event, LocalDnsSdRequest},
+    event::{Event, ExchangeRequest, LocalDnsSdRequest},
 };
 
 slint::include_modules!();
@@ -17,9 +17,20 @@ use self::shell::*;
 
 impl From<svudko_core::view_model::ViewModel> for ViewModel {
     fn from(
-        svudko_core::view_model::ViewModel { enabled_discover }: svudko_core::view_model::ViewModel,
+        svudko_core::view_model::ViewModel {
+            enabled_discover,
+            discovered_services,
+        }: svudko_core::view_model::ViewModel,
     ) -> Self {
-        Self { enabled_discover }
+        Self {
+            enabled_discover,
+            discovered_hosts: ModelRc::new(Rc::new(
+                discovered_services
+                    .into_iter()
+                    .map(SharedString::from)
+                    .collect::<VecModel<_>>(),
+            )),
+        }
     }
 }
 
@@ -55,6 +66,26 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         }
     })?;
+
+    app.on_start_scan({
+        let core = Arc::clone(&core);
+
+        move || {
+            core.inner()
+                .update(Event::Dns(LocalDnsSdRequest::BrowseForServices));
+        }
+    });
+
+    app.on_connect_to_host({
+        let core = Arc::clone(&core);
+
+        move |hostname| {
+            core.inner()
+                .update(Event::Exchange(ExchangeRequest::Connect(
+                    hostname.to_string(),
+                )));
+        }
+    });
 
     app.on_enable_discover({
         let core = Arc::clone(&core);

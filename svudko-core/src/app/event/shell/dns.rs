@@ -6,7 +6,7 @@ use crate::{event::LocalDnsSdEvent, resolvers::dns_sd::DnsSdErrors};
 pub enum LocalDnsSdRequest {
     EnableService,
     DisableService,
-    BrowseForService,
+    BrowseForServices,
     FindByHostname(String),
 }
 

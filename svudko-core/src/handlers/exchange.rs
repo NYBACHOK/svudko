@@ -1,22 +1,22 @@
 use crux_core::Request;
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::event::ExchangeRequest;
+use crate::effect::ExchangeCoreRequest;
 
 use super::*;
 
 pub struct Handler {
-    jobs_tx: UnboundedSender<Request<ExchangeRequest>>,
+    jobs_tx: UnboundedSender<Request<ExchangeCoreRequest>>,
 }
 
 impl Handler {
     pub fn new<R, I>(sink: Weak<R>, mut operator: I) -> Self
     where
-        R: ResolveSink<ExchangeRequest> + Send + Sync + 'static,
-        I: HandlerResolver<ExchangeRequest, <ExchangeRequest as Operation>::Output>,
+        R: ResolveSink<ExchangeCoreRequest> + Send + Sync + 'static,
+        I: HandlerResolver<ExchangeCoreRequest, <ExchangeCoreRequest as Operation>::Output>,
     {
         let (jobs_tx, mut jobs_rx) =
-            tokio::sync::mpsc::unbounded_channel::<Request<ExchangeRequest>>();
+            tokio::sync::mpsc::unbounded_channel::<Request<ExchangeCoreRequest>>();
 
         TOKIO_RUNTIME.spawn({
             async move {
@@ -34,7 +34,7 @@ impl Handler {
         Self { jobs_tx }
     }
 
-    pub fn process(&self, request: Request<ExchangeRequest>) {
+    pub fn process(&self, request: Request<ExchangeCoreRequest>) {
         self.jobs_tx.send(request).expect("worker disconnected");
     }
 }

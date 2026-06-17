@@ -29,6 +29,29 @@ impl App for Application {
                 })
                 .then_notify(|event| NotificationBuilder::new(async |ctx| ctx.send_event(event)))
                 .build(),
+            Event::Exchange(ExchangeRequest::Connect(hostname)) => {
+                let addr = model
+                    .dns_sd
+                    .discovered_services
+                    .get(&hostname)
+                    .cloned()
+                    .unwrap()
+                    .addresses
+                    .iter()
+                    .find(|this| this.is_ipv6())
+                    .unwrap()
+                    .to_ip_addr();
+
+                Command::request_from_shell(ExchangeCoreRequest::Connect((addr, hostname)))
+                    .map(|this| match this {
+                        Ok(res) => Event::Core(CoreEvent::Exchange(res)),
+                        Err(err) => Event::Core(CoreEvent::Error(err.to_string())),
+                    })
+                    .then_notify(|event| {
+                        NotificationBuilder::new(async |ctx| ctx.send_event(event))
+                    })
+                    .build()
+            }
             Event::Core(core_event) => match core_event {
                 CoreEvent::Error(e) => {
                     tracing::error!(err = %e, "error in core");
@@ -36,7 +59,7 @@ impl App for Application {
                     Command::notify_shell(CoreErrorEffect(e)).build()
                 }
                 CoreEvent::DnsReponses(res) => handle_dns_events(res, model),
-                CoreEvent::QuickConnection(event) => handle_quick_events(event, model),
+                CoreEvent::Exchange(event) => handle_quick_events(event, model),
             },
         }
     }
@@ -44,6 +67,12 @@ impl App for Application {
     fn view(&self, model: &Self::Model) -> Self::ViewModel {
         let view = Self::ViewModel {
             enabled_discover: model.dns_sd.enabled_discover,
+            discovered_services: model
+                .dns_sd
+                .discovered_services
+                .iter()
+                .map(|(this, _)| this.to_owned())
+                .collect(),
         };
 
         tracing::debug!(view = ?view);

@@ -7,6 +7,7 @@ pub use self::{core::*, shell::*};
 pub enum Event {
     // Shell shared events
     Dns(LocalDnsSdRequest),
+    Exchange(ExchangeRequest),
 
     // Core only events
     Core(CoreEvent),
@@ -15,6 +16,6 @@ pub enum Event {
 #[derive(Clone, Debug)]
 pub enum CoreEvent {
     DnsReponses(LocalDnsSdEvent),
-    QuickConnection(ExchangeEvent),
+    Exchange(ExchangeEvent),
     Error(String),
 }

@@ -8,10 +8,7 @@ use svudko_common::{
     quinn::{self, Connection, Endpoint},
 };
 
-use crate::{
-    TOKIO_RUNTIME,
-    event::{ExchangeEvent, ExchangeRequest},
-};
+use crate::{TOKIO_RUNTIME, effect::ExchangeCoreRequest, event::ExchangeEvent};
 
 use super::*;
 
@@ -41,10 +38,13 @@ impl Resolver {
     }
 }
 
-impl HandlerResolver<ExchangeRequest, <ExchangeRequest as Operation>::Output> for Resolver {
-    async fn resolve(&mut self, op: &ExchangeRequest) -> <ExchangeRequest as Operation>::Output {
+impl HandlerResolver<ExchangeCoreRequest, <ExchangeCoreRequest as Operation>::Output> for Resolver {
+    async fn resolve(
+        &mut self,
+        op: &ExchangeCoreRequest,
+    ) -> <ExchangeCoreRequest as Operation>::Output {
         let event = match op {
-            ExchangeRequest::Connect((ip_addr, hostname)) => self
+            ExchangeCoreRequest::Connect((ip_addr, hostname)) => self
                 .handle_connect(*ip_addr, hostname)
                 .await
                 .map(|_| ExchangeEvent::Connected(hostname.to_owned())),

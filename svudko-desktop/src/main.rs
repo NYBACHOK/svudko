@@ -6,8 +6,9 @@ use std::{error::Error, rc::Rc, sync::Arc};
 use slint::{ModelRc, SharedString, ToSharedString, VecModel};
 use svudko_core::{
     ApplicationCore, Effect,
-    event::{Event, ExchangeRequest, LocalDnsSdRequest},
+    event::{Event, ExchangeRequest},
 };
+use svudko_resolver_sd::request::LocalDnsSdRequest;
 
 slint::include_modules!();
 

@@ -1,6 +1,11 @@
 [workspace]
 resolver = "3"
-members = ["svudko-common", "svudko-core", "svudko-desktop"]
+members = [
+    "svudko-common",
+    "svudko-core",
+    "svudko-desktop",
+    "svudko-resolvers/*",
+]
 
 [workspace.package]
 license = "MIT"
@@ -11,15 +16,39 @@ clap = { version = "4.6", features = ["derive"] }
 anyhow = "1.0"
 serde = "1.0"
 thiserror = "2.0"
-tokio = { version = "1.52" }
+
 tracing = { version = "0.1", features = [] }
 tracing-subscriber = { version = "0.3", features = [] }
-# even through I use tokio, but slint uses it, so instead of mixing desktop uses 
+
+# runtime
+tokio = { version = "1.52" }
+# even through I use tokio, but slint uses smol, so instead of mixing desktop uses 
 # smol runtime outside of core
 smol = "2.0"
 
+# networking
+quinn = "0.11"
+mdns-sd = "0.20"
+
+# security
+rcgen = "0.14" # TODO: think about better way of generation
+
+# crux family
+crux_core = "0.19"
+
+# types
+uuid = { version = "1.23", features = ["v4"] }
+
+# tools
+data-encoding = "2.11"
+gethostname = "1"
+
+# local
 svudko-common = { path = "./svudko-common" }
 svudko-core = { path = "./svudko-core" }
+# local resolvers for core
+svudko-resolver-exchange = { path = "./svudko-resolvers/svudko-resolver-exchange" }
+svudko-resolver-sd = { path = "./svudko-resolvers/svudko-resolver-sd" }
 
 [workspace.lints.rust]
 rust_2018_idioms = "deny"

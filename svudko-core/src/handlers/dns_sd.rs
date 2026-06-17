@@ -1,4 +1,5 @@
-use crate::event::LocalDnsSdRequest;
+use svudko_common::resolver::HandlerResolver;
+use svudko_resolver_sd::request::LocalDnsSdRequest;
 
 use super::*;
 
@@ -15,7 +16,7 @@ impl Handler {
         let (jobs_tx, mut jobs_rx) =
             tokio::sync::mpsc::unbounded_channel::<Request<LocalDnsSdRequest>>();
 
-        TOKIO_RUNTIME.spawn({
+        ASYNC_RUNTIME.spawn({
             async move {
                 while let Some(mut request) = jobs_rx.recv().await {
                     let output = operator.resolve(&request.operation).await;

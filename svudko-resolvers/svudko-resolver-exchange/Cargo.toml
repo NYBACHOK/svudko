@@ -1,0 +1,18 @@
+[package]
+name = "svudko-resolver-exchange"
+version = "0.1.0"
+license.workspace = true
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+rcgen.workspace = true
+crux_core.workspace = true
+svudko-common.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+thiserror.workspace = true
+anyhow.workspace = true
+quinn.workspace = true

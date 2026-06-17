@@ -13,9 +13,7 @@ use quinn::{
         pki_types::{CertificateDer, PrivatePkcs8KeyDer, pem::PemObject},
     },
 };
-
-use crate::{APP_DATA_DIR, dummy_verification::SkipServerVerification};
-
+use svudko_common::{APP_DATA_DIR, dummy_verification::SkipServerVerification};
 pub const DOMAIN: &str = "app.sync.svudko";
 
 fn configure_server(

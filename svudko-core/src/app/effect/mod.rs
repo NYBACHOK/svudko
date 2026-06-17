@@ -1,11 +1,10 @@
 use crux_core::{Request, render::RenderOperation};
+use svudko_resolver_exchange::request::ExchangeCoreRequest;
+use svudko_resolver_sd::request::LocalDnsSdRequest;
 
 mod error;
-mod exchange;
 
-use crate::event::LocalDnsSdRequest;
-
-pub use self::{error::*, exchange::*};
+pub use self::error::*;
 
 #[derive(Debug)]
 pub enum Effect {

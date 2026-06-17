@@ -3,7 +3,7 @@ use std::sync::Weak;
 use crux_core::{Request, capability::Operation, effects::ResolveSink};
 use tokio::sync::mpsc::UnboundedSender;
 
-use crate::{TOKIO_RUNTIME, resolvers::HandlerResolver};
+use svudko_common::ASYNC_RUNTIME;
 
-pub mod exchange;
 pub mod dns_sd;
+pub mod exchange;

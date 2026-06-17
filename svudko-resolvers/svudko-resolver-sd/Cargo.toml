@@ -1,0 +1,19 @@
+[package]
+name = "svudko-resolver-sd"
+version = "0.1.0"
+license.workspace = true
+edition.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+crux_core.workspace = true
+svudko-common.workspace = true
+mdns-sd.workspace = true
+gethostname.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+thiserror.workspace = true
+uuid.workspace = true
+data-encoding.workspace = true

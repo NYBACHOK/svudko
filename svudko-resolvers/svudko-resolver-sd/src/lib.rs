@@ -3,17 +3,19 @@ use std::{
     time::Duration,
 };
 
-use mdns_sd::{
-    DaemonEvent, HostnameResolutionEvent, Receiver, ResolvedService, ScopedIp, ServiceDaemon,
-    ServiceInfo,
-};
-use svudko_common::{MDNS_SERVICE_PORT, MDNS_SERVICE_TYPE};
+use crux_core::capability::Operation;
+use mdns_sd::{HostnameResolutionEvent, ResolvedService, ScopedIp, ServiceDaemon, ServiceInfo};
+use svudko_common::resolver::HandlerResolver;
 
-use crate::event::{LocalDnsSdEvent, LocalDnsSdRequest};
+use crate::{event::LocalDnsSdEvent, request::LocalDnsSdRequest};
 
-use super::*;
+pub mod event;
+pub mod request;
 
 const OPERATION_TIMEOUT: Duration = Duration::from_secs(20);
+
+pub const MDNS_SERVICE_PORT: u16 = 15571;
+pub const MDNS_SERVICE_TYPE: &str = "_svudko-app._udp.local.";
 
 #[derive(Clone, Debug, thiserror::Error)]
 pub enum DnsSdErrors {
@@ -22,27 +24,32 @@ pub enum DnsSdErrors {
 }
 
 #[derive(Clone)]
-pub struct Resolver {
+pub struct SdResolver {
     daemon: ServiceDaemon,
-    _monitor: Receiver<DaemonEvent>,
     info: Option<ServiceInfo>,
 }
 
-impl Resolver {
-    pub fn new() -> Result<Self, mdns_sd::Error> {
+impl HandlerResolver<LocalDnsSdRequest, <LocalDnsSdRequest as Operation>::Output> for SdResolver {
+    type Opt = ();
+    type Err = DnsSdErrors;
+
+    fn new(_: Self::Opt) -> Result<Self, Self::Err>
+    where
+        Self: Sized,
+    {
         let daemon = ServiceDaemon::new()?;
 
         let monitor = daemon.monitor()?;
 
-        Ok(Self {
-            daemon,
-            _monitor: monitor,
-            info: None,
-        })
-    }
-}
+        let _ = tokio::spawn(async move {
+            while let Ok(event) = monitor.recv() {
+                tracing::debug!(event =?event, "daemon event");
+            }
+        });
 
-impl HandlerResolver<LocalDnsSdRequest, <LocalDnsSdRequest as Operation>::Output> for Resolver {
+        Ok(Self { daemon, info: None })
+    }
+
     async fn resolve(
         &mut self,
         op: &LocalDnsSdRequest,
@@ -72,8 +79,8 @@ impl HandlerResolver<LocalDnsSdRequest, <LocalDnsSdRequest as Operation>::Output
     }
 }
 
-impl Resolver {
-    fn handle_enable_server(&mut self) -> Result<(), DnsSdErrors> {
+impl SdResolver {
+    pub fn handle_enable_server(&mut self) -> Result<(), DnsSdErrors> {
         if self.info.is_some() {
             return Ok(());
         }
@@ -105,7 +112,7 @@ impl Resolver {
         Ok(())
     }
 
-    async fn handle_disable_server(&mut self) -> Result<LocalDnsSdEvent, DnsSdErrors> {
+    pub async fn handle_disable_server(&mut self) -> Result<LocalDnsSdEvent, DnsSdErrors> {
         let fullname = match self.info.as_ref() {
             Some(info) => info.get_fullname(),
             None => return Ok(LocalDnsSdEvent::Disabled),
@@ -123,7 +130,7 @@ impl Resolver {
         Ok(LocalDnsSdEvent::Disabled)
     }
 
-    async fn handle_browse(
+    pub async fn handle_browse(
         &mut self,
     ) -> Result<HashMap<String, Box<ResolvedService>>, DnsSdErrors> {
         let (tx, rx) = tokio::sync::oneshot::channel();
@@ -159,7 +166,10 @@ impl Resolver {
         Ok(services)
     }
 
-    async fn handle_search(&mut self, hostname: &str) -> Result<HashSet<ScopedIp>, DnsSdErrors> {
+    pub async fn handle_search(
+        &mut self,
+        hostname: &str,
+    ) -> Result<HashSet<ScopedIp>, DnsSdErrors> {
         let rx = self
             .daemon
             .resolve_hostname(hostname, Some(OPERATION_TIMEOUT.as_millis() as u64))?;

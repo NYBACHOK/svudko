@@ -8,9 +8,8 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-rcgen = "0.14" # TODO: think about better way of generation
-quinn = "0.11"
+quinn.workspace = true
 anyhow.workspace = true
-tokio = { workspace = true, features = ["fs"]}
+tokio = { workspace = true, features = []}
 dirs = "6"
 tracing.workspace = true

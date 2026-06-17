@@ -18,15 +18,15 @@ thiserror.workspace = true
 tokio = { workspace = true, features = ["full"] }
 dirs = "6"
 anyhow.workspace = true
+mdns-sd.workspace = true
 
-crux_core = "0.19"
+crux_core.workspace = true
 # facet = "=0.44"
 
+# local
 svudko-common.workspace = true
-mdns-sd = "0.20"
-gethostname = "1"
-uuid = { version = "1.23", features = ["v4"] }
-data-encoding = "2.11"
+svudko-resolver-sd.workspace = true
+svudko-resolver-exchange.workspace = true
 
 # optional dependencies
 boltffi = { version = "0.26", optional = true }

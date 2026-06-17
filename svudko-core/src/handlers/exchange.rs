@@ -1,7 +1,7 @@
 use crux_core::Request;
+use svudko_common::resolver::HandlerResolver;
+use svudko_resolver_exchange::request::ExchangeCoreRequest;
 use tokio::sync::mpsc::UnboundedSender;
-
-use crate::effect::ExchangeCoreRequest;
 
 use super::*;
 
@@ -18,7 +18,7 @@ impl Handler {
         let (jobs_tx, mut jobs_rx) =
             tokio::sync::mpsc::unbounded_channel::<Request<ExchangeCoreRequest>>();
 
-        TOKIO_RUNTIME.spawn({
+        ASYNC_RUNTIME.spawn({
             async move {
                 while let Some(mut request) = jobs_rx.recv().await {
                     let output = operator.resolve(&request.operation).await;

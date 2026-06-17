@@ -1,4 +1,6 @@
 use crux_core::{App, Command, command::NotificationBuilder, render::render};
+use svudko_resolver_exchange::{event::ExchangeEvent, request::ExchangeCoreRequest};
+use svudko_resolver_sd::event::LocalDnsSdEvent;
 
 pub mod effect;
 pub mod event;

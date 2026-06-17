@@ -1,16 +1,17 @@
 use std::{
     collections::HashMap,
-    net::{IpAddr, SocketAddr, SocketAddrV4, SocketAddrV6},
+    net::{IpAddr, SocketAddr, SocketAddrV4},
 };
 
-use svudko_common::{
-    DEFAULT_SERVER_ADDR, SERVER_PORT,
-    quinn::{self, Connection, Endpoint},
-};
+use crux_core::capability::Operation;
+use quinn::{Connection, Endpoint};
+use svudko_common::{ASYNC_RUNTIME, DEFAULT_SERVER_ADDR, SERVER_PORT, resolver::HandlerResolver};
 
-use crate::{TOKIO_RUNTIME, effect::ExchangeCoreRequest, event::ExchangeEvent};
+use crate::{event::ExchangeEvent, request::ExchangeCoreRequest};
 
-use super::*;
+mod endpoint;
+pub mod event;
+pub mod request;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ExchangeErrors {
@@ -23,22 +24,28 @@ pub enum ExchangeErrors {
 }
 
 #[derive(Clone)]
-pub struct Resolver {
+pub struct ExchangeResolver {
     endpoint: Endpoint,
     connections: HashMap<String, Connection>,
 }
 
-impl Resolver {
-    pub fn new() -> Result<Self, ExchangeErrors> {
+impl HandlerResolver<ExchangeCoreRequest, <ExchangeCoreRequest as Operation>::Output>
+    for ExchangeResolver
+{
+    type Opt = ();
+
+    type Err = ExchangeErrors;
+
+    fn new(_: Self::Opt) -> Result<Self, Self::Err>
+    where
+        Self: Sized,
+    {
         Ok(Self {
             connections: HashMap::new(),
-            endpoint: TOKIO_RUNTIME
-                .block_on(svudko_common::endpoint::endpoint(DEFAULT_SERVER_ADDR))?,
+            endpoint: ASYNC_RUNTIME.block_on(crate::endpoint::endpoint(DEFAULT_SERVER_ADDR))?,
         })
     }
-}
 
-impl HandlerResolver<ExchangeCoreRequest, <ExchangeCoreRequest as Operation>::Output> for Resolver {
     async fn resolve(
         &mut self,
         op: &ExchangeCoreRequest,
@@ -54,11 +61,15 @@ impl HandlerResolver<ExchangeCoreRequest, <ExchangeCoreRequest as Operation>::Ou
     }
 }
 
-impl Resolver {
-    async fn handle_connect(&mut self, ip: IpAddr, hostname: &str) -> Result<(), ExchangeErrors> {
+impl ExchangeResolver {
+    pub async fn handle_connect(
+        &mut self,
+        ip: IpAddr,
+        hostname: &str,
+    ) -> Result<(), ExchangeErrors> {
         let addr = match ip {
             IpAddr::V4(ip) => SocketAddr::V4(SocketAddrV4::new(ip, SERVER_PORT)),
-            IpAddr::V6(ip) => SocketAddr::V6(SocketAddrV6::new(ip, SERVER_PORT, 0, 0)), // TODO: find real values
+            IpAddr::V6(_ip) => unimplemented!("ipv6 mode"), // SocketAddr::V6(SocketAddrV6::new(ip, SERVER_PORT, 0, 0)), // TODO: find real values
         };
 
         let connection = self.endpoint.connect(addr, "servername")?.await?;

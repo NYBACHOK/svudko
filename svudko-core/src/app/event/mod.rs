@@ -1,7 +1,9 @@
-mod core;
 mod shell;
 
-pub use self::{core::*, shell::*};
+use svudko_resolver_exchange::event::ExchangeEvent;
+use svudko_resolver_sd::{event::LocalDnsSdEvent, request::LocalDnsSdRequest};
+
+pub use self::shell::*;
 
 #[derive(Clone, Debug)]
 pub enum Event {

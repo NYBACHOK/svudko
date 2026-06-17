@@ -1,15 +1,15 @@
-use std::sync::{Arc, LazyLock, Weak};
+use std::sync::{Arc, Weak};
 
 use crux_core::{
     effects::{EffectRouter, Routes},
     render::RenderOperation,
 };
-use tokio::runtime::Runtime;
+use svudko_common::resolver::HandlerResolver;
+use svudko_resolver_exchange::ExchangeResolver;
+use svudko_resolver_sd::SdResolver;
 
 mod app;
 mod handlers;
-
-pub mod resolvers;
 
 pub use app::*;
 pub use crux_core::App;
@@ -17,9 +17,6 @@ pub use crux_core::App;
 use crate::app::effect::CoreEffect;
 
 use crate::app::effect::Effect as RustCoreEffect;
-
-static TOKIO_RUNTIME: LazyLock<Runtime> =
-    LazyLock::new(|| tokio::runtime::Runtime::new().expect("failed to init runtime"));
 
 pub trait CruxShell {
     fn process_effects(&self, effect: Effect);
@@ -52,11 +49,11 @@ impl Routes<Application> for EffectRoutes {
         Self {
             dns: Arc::new(handlers::dns_sd::Handler::new(
                 Weak::clone(&router),
-                resolvers::dns_sd::Resolver::new().unwrap(), // TODO:
+                SdResolver::new(()).unwrap(), // TODO:
             )),
             connection: Arc::new(handlers::exchange::Handler::new(
                 Weak::clone(&router),
-                resolvers::exchange::Resolver::new().unwrap(),
+                ExchangeResolver::new(()).unwrap(), // todo
             )),
         }
     }

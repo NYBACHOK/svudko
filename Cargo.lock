@@ -5449,7 +5449,6 @@ dependencies = [
  "anyhow",
  "dirs",
  "quinn",
- "rcgen",
  "tokio",
  "tracing",
 ]
@@ -5462,17 +5461,16 @@ dependencies = [
  "boltffi",
  "clap",
  "crux_core",
- "data-encoding",
  "dirs",
- "gethostname",
  "log",
  "mdns-sd",
  "pretty_env_logger",
  "svudko-common",
+ "svudko-resolver-exchange",
+ "svudko-resolver-sd",
  "thiserror 2.0.18",
  "tokio",
  "tracing",
- "uuid",
 ]
 
 [[package]]
@@ -5483,8 +5481,38 @@ dependencies = [
  "slint-build",
  "smol",
  "svudko-core",
+ "svudko-resolver-sd",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "svudko-resolver-exchange"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "crux_core",
+ "quinn",
+ "rcgen",
+ "svudko-common",
+ "thiserror 2.0.18",
+ "tokio",
+ "tracing",
+]
+
+[[package]]
+name = "svudko-resolver-sd"
+version = "0.1.0"
+dependencies = [
+ "crux_core",
+ "data-encoding",
+ "gethostname",
+ "mdns-sd",
+ "svudko-common",
+ "thiserror 2.0.18",
+ "tokio",
+ "tracing",
+ "uuid",
 ]
 
 [[package]]

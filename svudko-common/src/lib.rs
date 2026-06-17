@@ -5,21 +5,17 @@ use std::{
 };
 
 pub mod dummy_verification;
-pub mod endpoint;
-
-pub mod quinn {
-    pub use quinn::*;
-}
+pub mod resolver;
+ 
+pub static ASYNC_RUNTIME: LazyLock<tokio::runtime::Runtime> =
+    LazyLock::new(|| tokio::runtime::Runtime::new().expect("failed to init runtime"));
 
 pub const DEFAULT_SERVER_ADDR: SocketAddr =
     SocketAddr::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), SERVER_PORT);
 
 pub const SERVER_PORT: u16 = 4443;
-pub const MDNS_SERVICE_PORT: u16 = 15571;
-pub const MDNS_SERVICE_TYPE: &str = "_svudko-app._udp.local.";
 
-static APP_DATA_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
-    // TODO: for tests I need use tmp_dir
+pub static APP_DATA_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
     const BUNDLE_ID: &str = "svukdo";
 
     data_dir().join(BUNDLE_ID)

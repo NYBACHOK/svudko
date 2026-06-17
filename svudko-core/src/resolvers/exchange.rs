@@ -61,7 +61,7 @@ impl Resolver {
             IpAddr::V6(ip) => SocketAddr::V6(SocketAddrV6::new(ip, SERVER_PORT, 0, 0)), // TODO: find real values
         };
 
-        let connection = self.endpoint.connect(addr, hostname)?.await?;
+        let connection = self.endpoint.connect(addr, "servername")?.await?;
 
         self.connections.insert(hostname.to_owned(), connection);
 

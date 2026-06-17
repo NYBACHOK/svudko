@@ -26,19 +26,18 @@ impl<T: Operation> Handler<T> {
 
         ASYNC_RUNTIME.spawn({
             async move {
-                let mut operator = match operator {
-                    Ok(operator) => operator,
-                    Err(_) => {
-                        let err = operator.expect_err("matched to err");
+                let mut operator = if let Ok(operator) = operator {
+                    operator
+                } else {
+                    let err = operator.expect_err("matched to err");
 
-                        tracing::error!(err = ?err, "error in handler during initialization");
+                    tracing::error!(err = ?err, "error in handler during initialization");
 
-                        if let Some(sink) = sink.upgrade() {
-                            sink.update(err.into())
-                        }
-
-                        return;
+                    if let Some(sink) = sink.upgrade() {
+                        sink.update(err.into());
                     }
+
+                    return;
                 };
 
                 while let Some(mut request) = jobs_rx.recv().await {

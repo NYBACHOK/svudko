@@ -1,11 +1,15 @@
 use std::sync::Arc;
 
-use quinn::rustls::{self, pki_types::{CertificateDer, ServerName, UnixTime}};
+use quinn::rustls::{
+    self,
+    pki_types::{CertificateDer, ServerName, UnixTime},
+};
 
 #[derive(Debug)]
 pub struct SkipServerVerification(Arc<rustls::crypto::CryptoProvider>);
 
 impl SkipServerVerification {
+    #[must_use]
     pub fn new() -> Arc<Self> {
         Arc::new(Self(Arc::new(rustls::crypto::ring::default_provider())))
     }

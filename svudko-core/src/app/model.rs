@@ -5,7 +5,7 @@ use mdns_sd::{ResolvedService, ScopedIp};
 #[derive(Debug, Clone, Default)]
 pub struct Model {
     pub dns_sd: DnsSdResult,
-    pub connected : HashSet<String>,
+    pub connected: HashSet<String>,
 }
 
 #[derive(Debug, Clone, Default)]

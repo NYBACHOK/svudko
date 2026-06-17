@@ -7,7 +7,12 @@ pub mod event;
 mod model;
 pub mod view_model;
 
-use self::{effect::*, event::*, model::*, view_model::*};
+use self::{
+    effect::{CoreErrorEffect, Effect},
+    event::{CoreEvent, Event, ExchangeRequest},
+    model::Model,
+    view_model::ViewModel,
+};
 
 #[derive(Default)]
 pub struct Application;
@@ -66,8 +71,8 @@ impl App for Application {
             discovered_services: model
                 .dns_sd
                 .discovered_services
-                .iter()
-                .map(|(this, _)| this.to_owned())
+                .keys()
+                .map(ToOwned::to_owned)
                 .collect(),
         };
 
@@ -101,7 +106,7 @@ fn handle_dns_events(
         LocalDnsSdEvent::Disabled => model.dns_sd.enabled_discover = false,
         LocalDnsSdEvent::FoundServices(services) => model.dns_sd.discovered_services = services,
         LocalDnsSdEvent::FoundIps(ips) => model.dns_sd.dedicated_search = ips,
-    };
+    }
 
     render()
 }

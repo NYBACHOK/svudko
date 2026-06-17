@@ -6,7 +6,7 @@ use std::{
 
 pub mod dummy_verification;
 pub mod resolver;
- 
+
 pub static ASYNC_RUNTIME: LazyLock<tokio::runtime::Runtime> =
     LazyLock::new(|| tokio::runtime::Runtime::new().expect("failed to init runtime"));
 

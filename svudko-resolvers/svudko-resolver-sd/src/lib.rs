@@ -42,7 +42,7 @@ impl HandlerResolver for SdResolver {
     type Op = LocalDnsSdRequest;
     type Err = DnsSdErrors;
 
-    fn new(_: Self::Opt) -> Result<Self, Self::Err>
+    fn new((): Self::Opt) -> Result<Self, Self::Err>
     where
         Self: Sized,
     {
@@ -80,7 +80,7 @@ impl HandlerResolver for SdResolver {
                 Ok(LocalDnsSdEvent::FoundServices(services))
             }
             LocalDnsSdRequest::FindByHostname(hostname) => {
-                let ips = self.handle_search(&hostname).await?;
+                let ips = self.handle_search(hostname).await?;
 
                 Ok(LocalDnsSdEvent::FoundIps(ips))
             }
@@ -134,7 +134,7 @@ impl SdResolver {
                 tracing::info!(status = ?status, "unregistered mdns_sd service");
             }
             Err(_) => panic!("tried to fetch status of un-registration on disconnected channel"),
-        };
+        }
 
         Ok(LocalDnsSdEvent::Disabled)
     }
@@ -187,12 +187,9 @@ impl SdResolver {
 
         tokio::spawn(async move {
             while let Ok(event) = rx.recv_async().await {
-                match event {
-                    HostnameResolutionEvent::AddressesFound(_, ips) => {
-                        let _ = tx.send(ips);
-                        return;
-                    }
-                    _ => (),
+                if let HostnameResolutionEvent::AddressesFound(_, ips) = event {
+                    let _ = tx.send(ips);
+                    return;
                 }
             }
         });

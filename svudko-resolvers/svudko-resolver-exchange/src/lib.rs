@@ -50,7 +50,7 @@ impl HandlerResolver for ExchangeResolver {
 
     type Err = ExchangeErrors;
 
-    fn new(_: Self::Opt) -> Result<Self, Self::Err>
+    fn new((): Self::Opt) -> Result<Self, Self::Err>
     where
         Self: Sized,
     {
@@ -60,15 +60,16 @@ impl HandlerResolver for ExchangeResolver {
         })
     }
 
-    async fn resolve(&mut self, op: &ExchangeCoreRequest) -> Result<<Self::Op as Operation>::Output, Self::Err> {
-        let event = match op {
+    async fn resolve(
+        &mut self,
+        op: &ExchangeCoreRequest,
+    ) -> Result<<Self::Op as Operation>::Output, Self::Err> {
+        match op {
             ExchangeCoreRequest::Connect((ip_addr, hostname)) => self
                 .handle_connect(*ip_addr, hostname)
                 .await
-                .map(|_| ExchangeEvent::Connected(hostname.to_owned())),
-        };
-
-        event
+                .map(|()| ExchangeEvent::Connected(hostname.to_owned())),
+        }
     }
 }
 

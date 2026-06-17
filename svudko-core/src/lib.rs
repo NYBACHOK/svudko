@@ -66,7 +66,7 @@ impl ApplicationCore {
             move |effect| match effect {
                 RustCoreEffect::Core(CoreEffect::DnsSd(request)) => routes.dns.process(request),
                 RustCoreEffect::Core(CoreEffect::Connection(request)) => {
-                    routes.connection.process(request)
+                    routes.connection.process(request);
                 }
                 effect => shell.process_effects(effect.into()),
             }
@@ -75,7 +75,8 @@ impl ApplicationCore {
         Self { router }
     }
 
+    #[must_use]
     pub fn inner(&self) -> &EffectRouter<Application, EffectRoutes> {
-        &*self.router
+        &self.router
     }
 }

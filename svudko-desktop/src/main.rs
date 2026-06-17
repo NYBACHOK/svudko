@@ -14,7 +14,7 @@ slint::include_modules!();
 
 mod shell;
 
-use self::shell::*;
+use self::shell::SlintShell;
 
 impl From<svudko_core::view_model::ViewModel> for ViewModel {
     fn from(
@@ -120,9 +120,10 @@ pub fn setup_logger() {
         .with(
             tracing_subscriber::EnvFilter::builder()
                 .with_default_directive(
-                    match cfg!(debug_assertions) {
-                        true => tracing::Level::DEBUG,
-                        false => tracing::Level::INFO,
+                    if cfg!(debug_assertions) {
+                        tracing::Level::DEBUG
+                    } else {
+                        tracing::Level::INFO
                     }
                     .into(),
                 )

@@ -6,7 +6,7 @@ use crux_core::{
 };
 use svudko_common::resolver::HandlerResolver;
 use svudko_resolver_exchange::{ExchangeResolver, request::ExchangeCoreRequest};
-use svudko_resolver_sd::{SdResolver, request::LocalDnsSdRequest};
+use svudko_resolver_sd::{SdResolver, request::ServiceDiscoveryRequest};
 
 mod app;
 mod handler;
@@ -40,7 +40,7 @@ impl From<RustCoreEffect> for Effect {
 
 #[derive(Clone)]
 pub struct EffectRoutes {
-    dns: Arc<Handler<LocalDnsSdRequest>>,
+    dns: Arc<Handler<ServiceDiscoveryRequest>>,
     connection: Arc<Handler<ExchangeCoreRequest>>,
 }
 

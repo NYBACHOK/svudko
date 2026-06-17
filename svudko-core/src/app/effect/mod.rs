@@ -1,6 +1,6 @@
 use crux_core::{Request, render::RenderOperation};
 use svudko_resolver_exchange::request::ExchangeCoreRequest;
-use svudko_resolver_sd::request::LocalDnsSdRequest;
+use svudko_resolver_sd::request::ServiceDiscoveryRequest;
 
 mod error;
 
@@ -15,7 +15,7 @@ pub enum Effect {
 
 #[derive(Debug)]
 pub enum CoreEffect {
-    DnsSd(Request<LocalDnsSdRequest>),
+    DnsSd(Request<ServiceDiscoveryRequest>),
     Connection(Request<ExchangeCoreRequest>),
 }
 
@@ -27,8 +27,8 @@ impl From<Request<RenderOperation>> for Effect {
     }
 }
 
-impl From<Request<LocalDnsSdRequest>> for Effect {
-    fn from(value: Request<LocalDnsSdRequest>) -> Self {
+impl From<Request<ServiceDiscoveryRequest>> for Effect {
+    fn from(value: Request<ServiceDiscoveryRequest>) -> Self {
         Self::Core(CoreEffect::DnsSd(value))
     }
 }

@@ -8,7 +8,7 @@ use svudko_core::{
     ApplicationCore, Effect,
     event::{Event, ExchangeRequest},
 };
-use svudko_resolver_sd::request::LocalDnsSdRequest;
+use svudko_resolver_sd::request::ServiceDiscoveryRequest;
 
 slint::include_modules!();
 
@@ -73,7 +73,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         move || {
             core.inner()
-                .update(Event::Dns(LocalDnsSdRequest::BrowseForServices));
+                .update(Event::Dns(ServiceDiscoveryRequest::BrowseForServices));
         }
     });
 
@@ -93,7 +93,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         move || {
             core.inner()
-                .update(Event::Dns(LocalDnsSdRequest::EnableService));
+                .update(Event::Dns(ServiceDiscoveryRequest::EnableService));
         }
     });
 
@@ -102,7 +102,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         move || {
             core.inner()
-                .update(Event::Dns(LocalDnsSdRequest::DisableService));
+                .update(Event::Dns(ServiceDiscoveryRequest::DisableService));
         }
     });
 

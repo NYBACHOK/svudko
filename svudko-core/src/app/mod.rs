@@ -1,6 +1,6 @@
 use crux_core::{App, Command, command::NotificationBuilder, render::render};
 use svudko_resolver_exchange::{event::ExchangeEvent, request::ExchangeCoreRequest};
-use svudko_resolver_sd::event::LocalDnsSdEvent;
+use svudko_resolver_sd::event::ServiceDiscoveryEvent;
 
 pub mod effect;
 pub mod event;
@@ -96,16 +96,18 @@ fn handle_quick_events(
 }
 
 fn handle_dns_events(
-    event: LocalDnsSdEvent,
+    event: ServiceDiscoveryEvent,
     model: &mut Model,
 ) -> crux_core::Command<Effect, Event> {
     tracing::debug!(method = "handle_dns_events", event = ?event);
 
     match event {
-        LocalDnsSdEvent::Enabled => model.dns_sd.enabled_discover = true,
-        LocalDnsSdEvent::Disabled => model.dns_sd.enabled_discover = false,
-        LocalDnsSdEvent::FoundServices(services) => model.dns_sd.discovered_services = services,
-        LocalDnsSdEvent::FoundIps(ips) => model.dns_sd.dedicated_search = ips,
+        ServiceDiscoveryEvent::Enabled => model.dns_sd.enabled_discover = true,
+        ServiceDiscoveryEvent::Disabled => model.dns_sd.enabled_discover = false,
+        ServiceDiscoveryEvent::FoundServices(services) => {
+            model.dns_sd.discovered_services = services
+        }
+        ServiceDiscoveryEvent::FoundIps(ips) => model.dns_sd.dedicated_search = ips,
     }
 
     render()

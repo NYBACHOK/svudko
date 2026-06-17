@@ -1,14 +1,16 @@
 mod shell;
 
 use svudko_resolver_exchange::{ExchangeErrors, event::ExchangeEvent};
-use svudko_resolver_sd::{DnsSdErrors, event::LocalDnsSdEvent, request::LocalDnsSdRequest};
+use svudko_resolver_sd::{
+    DnsSdErrors, event::ServiceDiscoveryEvent, request::ServiceDiscoveryRequest,
+};
 
 pub use self::shell::*;
 
 #[derive(Clone, Debug)]
 pub enum Event {
     // Shell shared events
-    Dns(LocalDnsSdRequest),
+    Dns(ServiceDiscoveryRequest),
     Exchange(ExchangeRequest),
 
     // Core only events
@@ -17,7 +19,7 @@ pub enum Event {
 
 #[derive(Clone, Debug)]
 pub enum CoreEvent {
-    DnsReponses(LocalDnsSdEvent),
+    DnsReponses(ServiceDiscoveryEvent),
     Exchange(ExchangeEvent),
     Error(String),
 }

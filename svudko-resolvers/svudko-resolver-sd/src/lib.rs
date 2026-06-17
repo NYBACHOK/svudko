@@ -7,7 +7,7 @@ use crux_core::capability::Operation;
 use mdns_sd::{HostnameResolutionEvent, ResolvedService, ScopedIp, ServiceDaemon, ServiceInfo};
 use svudko_common::resolver::HandlerResolver;
 
-use crate::{event::LocalDnsSdEvent, request::LocalDnsSdRequest};
+use crate::{event::ServiceDiscoveryEvent, request::ServiceDiscoveryRequest};
 
 pub mod event;
 pub mod request;
@@ -39,7 +39,7 @@ impl std::fmt::Debug for SdResolver {
 
 impl HandlerResolver for SdResolver {
     type Opt = ();
-    type Op = LocalDnsSdRequest;
+    type Op = ServiceDiscoveryRequest;
     type Err = DnsSdErrors;
 
     fn new((): Self::Opt) -> Result<Self, Self::Err>
@@ -61,28 +61,28 @@ impl HandlerResolver for SdResolver {
 
     async fn resolve(
         &mut self,
-        op: &LocalDnsSdRequest,
+        op: &ServiceDiscoveryRequest,
     ) -> Result<<Self::Op as Operation>::Output, Self::Err> {
         match op {
-            LocalDnsSdRequest::EnableService => {
+            ServiceDiscoveryRequest::EnableService => {
                 self.handle_enable_server()?;
 
-                Ok(LocalDnsSdEvent::Enabled)
+                Ok(ServiceDiscoveryEvent::Enabled)
             }
-            LocalDnsSdRequest::DisableService => {
+            ServiceDiscoveryRequest::DisableService => {
                 self.handle_disable_server().await?;
 
-                Ok(LocalDnsSdEvent::Disabled)
+                Ok(ServiceDiscoveryEvent::Disabled)
             }
-            LocalDnsSdRequest::BrowseForServices => {
+            ServiceDiscoveryRequest::BrowseForServices => {
                 let services = self.handle_browse().await?;
 
-                Ok(LocalDnsSdEvent::FoundServices(services))
+                Ok(ServiceDiscoveryEvent::FoundServices(services))
             }
-            LocalDnsSdRequest::FindByHostname(hostname) => {
+            ServiceDiscoveryRequest::FindByHostname(hostname) => {
                 let ips = self.handle_search(hostname).await?;
 
-                Ok(LocalDnsSdEvent::FoundIps(ips))
+                Ok(ServiceDiscoveryEvent::FoundIps(ips))
             }
         }
     }
@@ -121,10 +121,10 @@ impl SdResolver {
         Ok(())
     }
 
-    pub async fn handle_disable_server(&mut self) -> Result<LocalDnsSdEvent, DnsSdErrors> {
+    pub async fn handle_disable_server(&mut self) -> Result<ServiceDiscoveryEvent, DnsSdErrors> {
         let fullname = match self.info.as_ref() {
             Some(info) => info.get_fullname(),
-            None => return Ok(LocalDnsSdEvent::Disabled),
+            None => return Ok(ServiceDiscoveryEvent::Disabled),
         };
 
         let rx = self.daemon.unregister(fullname)?;
@@ -136,7 +136,7 @@ impl SdResolver {
             Err(_) => panic!("tried to fetch status of un-registration on disconnected channel"),
         }
 
-        Ok(LocalDnsSdEvent::Disabled)
+        Ok(ServiceDiscoveryEvent::Disabled)
     }
 
     pub async fn handle_browse(

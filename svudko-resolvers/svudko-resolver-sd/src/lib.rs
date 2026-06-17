@@ -5,7 +5,7 @@ use std::{
 
 use crux_core::capability::Operation;
 use mdns_sd::{HostnameResolutionEvent, ResolvedService, ScopedIp, ServiceDaemon, ServiceInfo};
-use svudko_common::resolver::HandlerResolver;
+use svudko_common::{ASYNC_RUNTIME, resolver::HandlerResolver};
 
 use crate::{event::ServiceDiscoveryEvent, request::ServiceDiscoveryRequest};
 
@@ -50,7 +50,7 @@ impl HandlerResolver for SdResolver {
 
         let monitor = daemon.monitor()?;
 
-        let _ = tokio::spawn(async move {
+        let _ = ASYNC_RUNTIME.spawn(async move {
             while let Ok(event) = monitor.recv() {
                 tracing::debug!(event =?event, "daemon event");
             }

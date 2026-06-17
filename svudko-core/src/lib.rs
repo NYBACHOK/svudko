@@ -13,6 +13,7 @@ mod handler;
 
 pub use app::*;
 pub use crux_core::App;
+use svudko_resolver_storage::{StorageResolver, request::StorageRequest};
 
 use crate::{app::effect::CoreEffect, handler::Handler};
 
@@ -42,6 +43,7 @@ impl From<RustCoreEffect> for Effect {
 pub struct EffectRoutes {
     dns: Arc<Handler<ServiceDiscoveryRequest>>,
     connection: Arc<Handler<ExchangeCoreRequest>>,
+    storage: Arc<Handler<StorageRequest>>,
 }
 
 impl Routes<Application> for EffectRoutes {
@@ -52,6 +54,7 @@ impl Routes<Application> for EffectRoutes {
                 Weak::clone(&router),
                 ExchangeResolver::new(()),
             )),
+            storage: Arc::new(Handler::new(Weak::clone(&router), StorageResolver::new(()))),
         }
     }
 }
@@ -68,6 +71,7 @@ impl ApplicationCore {
                 RustCoreEffect::Core(CoreEffect::Connection(request)) => {
                     routes.connection.process(request);
                 }
+                RustCoreEffect::Core(CoreEffect::Storage(req)) => routes.storage.process(req),
                 effect => shell.process_effects(effect.into()),
             }
         });

@@ -1,5 +1,5 @@
 [package]
-name = "svudko-resolver-exchange"
+name = "svudko-resolver-storage"
 version = "0.1.0"
 license.workspace = true
 edition.workspace = true
@@ -8,9 +8,8 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-rcgen.workspace = true 
 svudko-common.workspace = true
-tokio.workspace = true
 tracing.workspace = true
 thiserror.workspace = true
-quinn.workspace = true
+tokio = { workspace = true, features = ["fs"]}
+sqlx = { workspace = true, features = ["migrate", "macros", "runtime-tokio", "tls-rustls", "sqlite" ] }

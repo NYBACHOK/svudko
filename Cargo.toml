@@ -35,6 +35,8 @@ rcgen = "0.14" # TODO: think about better way of generation
 
 # crux family
 crux_core = "0.19"
+# facet = "=0.44"
+boltffi = { version = "0.26" }
 
 # types
 uuid = { version = "1.23", features = ["v4"] }
@@ -43,12 +45,16 @@ uuid = { version = "1.23", features = ["v4"] }
 data-encoding = "2.11"
 gethostname = "1"
 
+# other
+sqlx = { version = "0.9", default-features = false }
+
 # local
 svudko-common = { path = "./svudko-common" }
 svudko-core = { path = "./svudko-core" }
 # local resolvers for core
 svudko-resolver-exchange = { path = "./svudko-resolvers/svudko-resolver-exchange" }
 svudko-resolver-sd = { path = "./svudko-resolvers/svudko-resolver-sd" }
+svudko-resolver-storage = { path = "./svudko-resolvers/svudko-resolver-storage" }
 
 [workspace.lints.rust]
 rust_2018_idioms = "deny"

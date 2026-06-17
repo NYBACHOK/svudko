@@ -21,15 +21,15 @@ anyhow.workspace = true
 mdns-sd.workspace = true
 
 crux_core.workspace = true
-# facet = "=0.44"
 
 # local
 svudko-common.workspace = true
 svudko-resolver-sd.workspace = true
 svudko-resolver-exchange.workspace = true
+svudko-resolver-storage.workspace = true
 
 # optional dependencies
-boltffi = { version = "0.26", optional = true }
+boltffi = { workspace = true, optional = true }
 clap = { workspace = true, optional = true, features = ["derive"] }
 log = { version = "0.4", optional = true }
 pretty_env_logger = { version = "0.5", optional = true }

@@ -15,6 +15,7 @@ use quinn::{
 use svudko_common::{APP_DATA_DIR, dummy_verification::SkipServerVerification};
 
 use crate::ExchangeErrors;
+
 pub const DOMAIN: &str = "app.sync.svudko";
 
 fn configure_server(

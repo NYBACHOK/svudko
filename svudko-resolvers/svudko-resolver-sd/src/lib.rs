@@ -3,8 +3,8 @@ use std::{
     time::Duration,
 };
 
-use crux_core::capability::Operation;
 use mdns_sd::{HostnameResolutionEvent, ResolvedService, ScopedIp, ServiceDaemon, ServiceInfo};
+use svudko_common::Operation;
 use svudko_common::{ASYNC_RUNTIME, resolver::HandlerResolver};
 
 use crate::{event::ServiceDiscoveryEvent, request::ServiceDiscoveryRequest};

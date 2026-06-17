@@ -1,6 +1,6 @@
 use std::net::IpAddr;
 
-use crux_core::capability::Operation;
+use svudko_common::Operation;
 
 use crate::event::ExchangeEvent;
 

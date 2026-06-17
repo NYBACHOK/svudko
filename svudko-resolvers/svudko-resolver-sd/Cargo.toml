@@ -8,7 +8,6 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-crux_core.workspace = true
 svudko-common.workspace = true
 mdns-sd.workspace = true
 gethostname.workspace = true

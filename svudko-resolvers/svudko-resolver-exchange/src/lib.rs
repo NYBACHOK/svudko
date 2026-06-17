@@ -3,8 +3,8 @@ use std::{
     net::{IpAddr, SocketAddr, SocketAddrV4},
 };
 
-use crux_core::capability::Operation;
 use quinn::{Connection, Endpoint};
+use svudko_common::Operation;
 use svudko_common::{ASYNC_RUNTIME, DEFAULT_SERVER_ADDR, SERVER_PORT, resolver::HandlerResolver};
 
 use crate::{event::ExchangeEvent, request::ExchangeCoreRequest};

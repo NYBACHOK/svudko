@@ -1,6 +1,6 @@
 use std::net::IpAddr;
 
-use svudko_common::Operation;
+use svudko_common::resolver::Operation;
 
 use crate::event::ExchangeEvent;
 

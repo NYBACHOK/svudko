@@ -4,8 +4,10 @@ use std::{
 };
 
 use mdns_sd::{HostnameResolutionEvent, ResolvedService, ScopedIp, ServiceDaemon, ServiceInfo};
-use svudko_common::Operation;
-use svudko_common::{ASYNC_RUNTIME, resolver::HandlerResolver};
+use svudko_common::{
+    ASYNC_RUNTIME,
+    resolver::{HandlerResolver, Operation},
+};
 
 use crate::{event::ServiceDiscoveryEvent, request::ServiceDiscoveryRequest};
 

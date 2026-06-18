@@ -1,4 +1,4 @@
-use crux_core::capability::Operation;
+pub use crux_core::capability::Operation;
 
 pub trait HandlerResolver: Send + Sync + 'static {
     /// Options to pass during resolver creation

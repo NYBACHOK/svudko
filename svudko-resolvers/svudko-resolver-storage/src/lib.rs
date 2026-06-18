@@ -1,7 +1,10 @@
 use std::path::PathBuf;
 
 use sqlx::SqlitePool;
-use svudko_common::{APP_DATA_DIR, ASYNC_RUNTIME, Operation, resolver::HandlerResolver};
+use svudko_common::{
+    APP_DATA_DIR, ASYNC_RUNTIME,
+    resolver::{HandlerResolver, Operation},
+};
 
 mod errors;
 pub mod event;

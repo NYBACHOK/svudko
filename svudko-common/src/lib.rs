@@ -13,8 +13,6 @@ pub static ASYNC_RUNTIME: LazyLock<tokio::runtime::Runtime> =
 pub const DEFAULT_SERVER_ADDR: SocketAddr =
     SocketAddr::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), SERVER_PORT);
 
-pub use crux_core::capability::Operation;
-
 pub const SERVER_PORT: u16 = 4443;
 
 pub static APP_DATA_DIR: LazyLock<PathBuf> = LazyLock::new(|| {

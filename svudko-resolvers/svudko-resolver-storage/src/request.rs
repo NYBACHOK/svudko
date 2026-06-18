@@ -1,4 +1,4 @@
-use svudko_common::Operation;
+use svudko_common::resolver::Operation;
 
 use crate::event::StorageEvent;
 

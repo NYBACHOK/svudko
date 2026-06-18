@@ -4,8 +4,10 @@ use std::{
 };
 
 use quinn::{Connection, Endpoint};
-use svudko_common::Operation;
-use svudko_common::{ASYNC_RUNTIME, DEFAULT_SERVER_ADDR, SERVER_PORT, resolver::HandlerResolver};
+use svudko_common::{
+    ASYNC_RUNTIME, DEFAULT_SERVER_ADDR, SERVER_PORT,
+    resolver::{HandlerResolver, Operation},
+};
 
 use crate::{event::ExchangeEvent, request::ExchangeCoreRequest};
 

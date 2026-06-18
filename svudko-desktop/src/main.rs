@@ -5,6 +5,7 @@ use std::{error::Error, rc::Rc, sync::Arc};
 
 use slint::{ModelRc, SharedString, ToSharedString, VecModel};
 use svudko_core::{ApplicationCore, Effect, event::Event};
+use svudko_resolver_exchange::request::ExchangeRequest;
 use svudko_resolver_sd::request::ServiceDiscoveryRequest;
 
 slint::include_modules!();
@@ -85,16 +86,16 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     });
 
-    // app.on_connect_to_host({
-    //     let core = Arc::clone(&core);
+    app.on_connect_to_host({
+        let core = Arc::clone(&core);
 
-    //     move |hostname| {
-    //         core.inner()
-    //             .update(Event::Exchange(ExchangeRequest::Connect(
-    //                 hostname.to_string(),
-    //             )));
-    //     }
-    // });
+        move |hostname| {
+            core.inner()
+                .update(Event::Exchange(ExchangeRequest::Connect(
+                    hostname.to_string(),
+                )));
+        }
+    });
 
     app.on_enable_discover({
         let core = Arc::clone(&core);
@@ -113,6 +114,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             core.inner().update(Event::ServiceDiscovery(
                 ServiceDiscoveryRequest::DisableService,
             ));
+
+              core.inner()
+                .update(Event::Exchange(ExchangeRequest::Connect(
+                    "hostname".to_string(),
+                )));
         }
     });
 

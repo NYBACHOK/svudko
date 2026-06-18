@@ -3,6 +3,7 @@ use std::{
     collections::HashMap,
     fmt::Debug,
     marker::PhantomData,
+    net::SocketAddrV4,
     sync::{Arc, Mutex, RwLock},
 };
 
@@ -58,7 +59,7 @@ pub struct ExchangeResolver<T> {
     endpoint: Endpoint,
     trusted_hosts: Arc<RwLock<HashMap<String, String>>>,
     _phantom: PhantomData<T>,
-    // connections: HashMap<String, Connection>,
+    connections: HashMap<String, Connection>,
     // incoming_connections: Arc<Mutex<HashMap<String, (Connection, RecvStream)>>>,
 }
 
@@ -101,6 +102,7 @@ where
         Ok(Self {
             trusted_hosts,
             endpoint,
+            connections: Default::default(),
             _phantom: PhantomData,
         })
     }
@@ -110,13 +112,22 @@ where
         op: &ExchangeRequest,
     ) -> Result<<Self::Op as Operation>::Output, Self::Err> {
         match op {
-            // ExchangeRequest::Connect(hostname) => {
-            //     // self
-            //     // .handle_connect(*ip_addr, hostname)
-            //     // .await
-            //     // .map(|()| ExchangeEvent::Connected(hostname.to_owned()))
-            //     todo!()
-            // }
+            ExchangeRequest::Connect(hostname) => {
+                let connection = self
+                    .endpoint
+                    .connect(
+                        std::net::SocketAddr::V4(SocketAddrV4::new(
+                            [192, 168, 0, 104].into(),
+                            SERVER_PORT,
+                        )),
+                        "servername",
+                    )?
+                    .await?;
+
+                self.connections.insert(hostname.to_owned(), connection);
+
+                Ok(ExchangeEvent::None)
+            }
             // ExchangeRequest::Send(hostname) => self
             //     .handle_send(hostname)
             //     .await
@@ -189,16 +200,16 @@ fn start_handling_incoming(endpoint: Endpoint) {
     async fn handle(incoming: Incoming) -> Result<(), anyhow::Error> {
         let connection = incoming.await?;
 
-        let mut stream = connection.accept_uni().await?;
+        // let mut stream = connection.accept_uni().await?;
 
-        let mut file =
-            tokio::fs::File::create(APP_DATA_DIR.join("received-test-image.png")).await?;
+        // let mut file =
+        //     tokio::fs::File::create(APP_DATA_DIR.join("received-test-image.png")).await?;
 
-        while let Ok(Some(chunk)) = stream.read_chunk(MAX_CHUNK_LENGTH, true).await {
-            let _ = file.write(&chunk.bytes).await;
-        }
+        // while let Ok(Some(chunk)) = stream.read_chunk(MAX_CHUNK_LENGTH, true).await {
+        //     let _ = file.write(&chunk.bytes).await;
+        // }
 
-        file.sync_all().await?;
+        // file.sync_all().await?;
 
         Ok(())
     }

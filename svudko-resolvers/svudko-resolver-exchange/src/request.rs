@@ -6,7 +6,7 @@ use crate::event::ExchangeEvent;
 
 #[derive(Clone, Debug)]
 pub enum ExchangeRequest {
-    // Connect(String),
+    Connect(String),
     // Send(String),
     TrustedHosts(HashMap<String, String>),
 }

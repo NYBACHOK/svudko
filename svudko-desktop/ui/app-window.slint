@@ -29,25 +29,25 @@ export component AppWindow inherits Window {
 
     callback allow_host(PendingHost);
 
-    min-width: 360px;
+    min-width: 660px;
     min-height: 500px;
     title: "Svudko";
     background: #17171a;
 
     VerticalLayout {
         VerticalLayout {
+            height: 20%;
             Text {
                 text: "Scan result";
             }
 
             ListView {
                 for host[i] in model.discovered_hosts: HorizontalBox {
-
-                    height: 20%;
+                   
                     Text {
                         text: host;
                         vertical-alignment: center;
-                        color: #ffffff;
+                        color: #ddc4c4;
                     }
 
                     Button {
@@ -68,13 +68,14 @@ export component AppWindow inherits Window {
         }
 
         VerticalLayout {
+            height: 20%;
             Text {
                 text: "Pending approvals";
             }
 
             ListView {
                 for host[i] in model.pending_hosts: HorizontalBox {
-                    height: 20%;
+                 
 
                     Text {
                         text: host.name;

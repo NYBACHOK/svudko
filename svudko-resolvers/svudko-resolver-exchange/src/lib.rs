@@ -1,19 +1,25 @@
 use std::{
     collections::HashMap,
     net::{IpAddr, SocketAddr, SocketAddrV4},
+    sync::{Arc, Mutex},
 };
 
-use quinn::{Connection, Endpoint};
+use quinn::{Connection, Endpoint, Incoming, RecvStream};
 use svudko_common::{
-    ASYNC_RUNTIME, DEFAULT_SERVER_ADDR, SERVER_PORT,
+    APP_DATA_DIR, ASYNC_RUNTIME, DEFAULT_SERVER_ADDR, SERVER_PORT,
     resolver::{HandlerResolver, Operation},
 };
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 use crate::{event::ExchangeEvent, request::ExchangeCoreRequest};
 
 mod endpoint;
 pub mod event;
 pub mod request;
+
+const POISONED_MUTEX: &str = "poisoned lock";
+
+const MAX_CHUNK_LENGTH: usize = 20_000_000;
 
 #[derive(Debug, thiserror::Error)]
 pub enum ExchangeErrors {
@@ -31,6 +37,8 @@ pub enum ExchangeErrors {
     NoInitialCipherSuite(#[from] quinn::crypto::rustls::NoInitialCipherSuite),
     #[error(transparent)]
     Rcgen(#[from] rcgen::Error),
+    #[error(transparent)]
+    Tmp(#[from] anyhow::Error),
 }
 
 impl From<std::io::Error> for ExchangeErrors {
@@ -43,6 +51,8 @@ impl From<std::io::Error> for ExchangeErrors {
 pub struct ExchangeResolver {
     endpoint: Endpoint,
     connections: HashMap<String, Connection>,
+
+    incoming_connections: Arc<Mutex<HashMap<String, (Connection, RecvStream)>>>,
 }
 
 impl HandlerResolver for ExchangeResolver {
@@ -56,9 +66,15 @@ impl HandlerResolver for ExchangeResolver {
     where
         Self: Sized,
     {
+        let incoming_connections = Default::default();
+        let endpoint = ASYNC_RUNTIME.block_on(crate::endpoint::endpoint(DEFAULT_SERVER_ADDR))?;
+
+        start_handling_incoming(endpoint.clone());
+
         Ok(Self {
             connections: HashMap::new(),
-            endpoint: ASYNC_RUNTIME.block_on(crate::endpoint::endpoint(DEFAULT_SERVER_ADDR))?,
+            incoming_connections,
+            endpoint,
         })
     }
 
@@ -71,6 +87,11 @@ impl HandlerResolver for ExchangeResolver {
                 .handle_connect(*ip_addr, hostname)
                 .await
                 .map(|()| ExchangeEvent::Connected(hostname.to_owned())),
+            ExchangeCoreRequest::Send(hostname) => self
+                .handle_send(hostname)
+                .await
+                .map(|()| ExchangeEvent::SendFile)
+                .map_err(Into::into),
         }
     }
 }
@@ -89,6 +110,49 @@ impl ExchangeResolver {
         let connection = self.endpoint.connect(addr, "servername")?.await?;
 
         self.connections.insert(hostname.to_owned(), connection);
+
+        Ok(())
+    }
+
+    pub async fn handle_send(&mut self, hostname: &str) -> Result<(), anyhow::Error> {
+        let mut file = tokio::fs::File::open(APP_DATA_DIR.join("to-send-test-image.png")).await?;
+
+        let connection = self.connections.get(hostname).unwrap();
+
+        let mut stream = connection.open_uni().await?;
+
+        let mut buffer = Vec::new();
+
+        file.read_to_end(&mut buffer).await?;
+
+        stream.write_all(&buffer).await?;
+
+        Ok(())
+    }
+}
+
+fn start_handling_incoming(endpoint: Endpoint) {
+    ASYNC_RUNTIME.spawn(async move {
+        while let Some(accept) = endpoint.accept().await {
+            let _ = handle(accept)
+                .await
+                .inspect_err(|e| tracing::error!(err = ?e));
+        }
+    });
+
+    async fn handle(incoming: Incoming) -> Result<(), anyhow::Error> {
+        let connection = incoming.await?;
+
+        let mut stream = connection.accept_uni().await?;
+
+        let mut file =
+            tokio::fs::File::create(APP_DATA_DIR.join("received-test-image.png")).await?;
+
+        while let Ok(Some(chunk)) = stream.read_chunk(MAX_CHUNK_LENGTH, true).await {
+            let _ = file.write(&chunk.bytes).await;
+        }
+
+        file.sync_all().await?;
 
         Ok(())
     }

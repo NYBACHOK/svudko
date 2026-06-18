@@ -7,6 +7,7 @@ use crate::event::ExchangeEvent;
 #[derive(Clone, Debug)]
 pub enum ExchangeCoreRequest {
     Connect((IpAddr, String)),
+    Send(String)
 }
 
 impl Operation for ExchangeCoreRequest {

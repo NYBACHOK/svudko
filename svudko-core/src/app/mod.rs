@@ -52,7 +52,13 @@ impl App for Application {
                         NotificationBuilder::new(async |ctx| ctx.send_event(event))
                     })
                     .build()
-            }
+            },
+            Event::Exchange(ExchangeRequest::SendFile(hostname)) =>   Command::request_from_shell(ExchangeCoreRequest::Send(hostname))
+                    .map(|this| Event::Core(CoreEvent::Exchange(this)))
+                    .then_notify(|event| {
+                        NotificationBuilder::new(async |ctx| ctx.send_event(event))
+                    })
+                    .build(),
             Event::Core(core_event) => match core_event {
                 CoreEvent::Error(e) => {
                     tracing::error!(err = %e, "error in core");
@@ -90,6 +96,7 @@ fn handle_quick_events(
         ExchangeEvent::Connected(hostname) => {
             let _ = model.connected.insert(hostname);
         }
+        ExchangeEvent::SendFile => (),
     }
 
     render()

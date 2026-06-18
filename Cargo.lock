@@ -5977,6 +5977,7 @@ dependencies = [
 name = "svudko-resolver-exchange"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "quinn",
  "rcgen",
  "svudko-common",

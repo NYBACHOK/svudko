@@ -106,6 +106,17 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     });
 
+    app.on_send_debug_file({
+        let core = Arc::clone(&core);
+
+        move |hostname| {
+            core.inner()
+                .update(Event::Exchange(ExchangeRequest::SendFile(
+                    hostname.to_string(),
+                )));
+        }
+    });
+
     app.run()?;
 
     Ok(())

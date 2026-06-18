@@ -98,12 +98,7 @@ impl SdResolver {
 
         let instance_name = data_encoding::BASE64.encode(uuid::Uuid::new_v4().as_bytes());
 
-        let host_name = format!(
-            "_{}.local.",
-            gethostname::gethostname()
-                .to_string_lossy()
-                .replace(char::REPLACEMENT_CHARACTER, ""),
-        );
+        let host_name = format!("_{}.local.", svudko_common::hostname());
 
         let service_info = ServiceInfo::new(
             MDNS_SERVICE_TYPE,

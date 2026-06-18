@@ -13,7 +13,7 @@ use quinn::{
         pki_types::{CertificateDer, PrivatePkcs8KeyDer, pem::PemObject},
     },
 };
-use rcgen::Issuer;
+use rcgen::{Issuer, SanType};
 use svudko_common::{APP_DATA_DIR, CERT_CA_KEY_PEM};
 use tokio::sync::mpsc::UnboundedSender;
 
@@ -74,6 +74,7 @@ fn configure_client(cert_file: PathBuf) -> Result<ClientConfig, ExchangeErrors> 
 pub async fn load_or_generate_cert(
     cert_file: &Path,
     key_file: &Path,
+    names: Vec<SanType>,
 ) -> Result<CertificateDer<'static>, ExchangeErrors> {
     if cert_file.exists() && key_file.exists() {
         let cert_pem = std::fs::read_to_string(cert_file)?;
@@ -85,6 +86,7 @@ pub async fn load_or_generate_cert(
     params
         .distinguished_name
         .push(rcgen::DnType::CommonName, svudko_common::hostname());
+    params.subject_alt_names = names;
 
     let key_pair = rcgen::KeyPair::generate()?;
 
@@ -98,6 +100,7 @@ pub async fn load_or_generate_cert(
 
 pub async fn endpoint(
     addr: SocketAddr,
+    names: Vec<SanType>,
     trusted_hosts: Arc<RwLock<HashMap<String, String>>>,
     tx: UnboundedSender<UnknownSignature>,
 ) -> Result<Endpoint, ExchangeErrors> {
@@ -107,7 +110,7 @@ pub async fn endpoint(
 
     let cert_file = APP_DATA_DIR.join("certificate.pem");
     let key_file = APP_DATA_DIR.join("private_key.pem");
-    let cert = load_or_generate_cert(&cert_file, &key_file).await?;
+    let cert = load_or_generate_cert(&cert_file, &key_file, names).await?;
 
     let client_cfg = configure_client(cert_file)?;
     let server_cfg = configure_server(&cert, &key_file, trusted_hosts, tx)?;

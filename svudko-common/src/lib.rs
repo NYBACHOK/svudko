@@ -1,7 +1,7 @@
 use std::{
     net::{IpAddr, Ipv6Addr, SocketAddr},
     path::PathBuf,
-    sync::LazyLock,
+    sync::{LazyLock, OnceLock},
 };
 
 pub mod resolver;
@@ -48,8 +48,12 @@ fn data_dir() -> PathBuf {
     }
 }
 
-pub fn hostname() -> String {
-    gethostname::gethostname()
-        .to_string_lossy()
-        .replace(char::REPLACEMENT_CHARACTER, "")
+pub fn hostname() -> &'static str {
+    static HOST_NAME: OnceLock<String> = OnceLock::new();
+
+    HOST_NAME.get_or_init(|| {
+        gethostname::gethostname()
+            .to_string_lossy()
+            .replace(char::REPLACEMENT_CHARACTER, "")
+    })
 }

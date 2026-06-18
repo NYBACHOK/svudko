@@ -8,8 +8,9 @@ use std::{
 };
 
 use quinn::{Connection, Endpoint, Incoming, RecvStream};
+use rcgen::SanType;
 use svudko_common::{
-    APP_DATA_DIR, ASYNC_RUNTIME, DEFAULT_SERVER_ADDR, SERVER_PORT,
+    APP_DATA_DIR, ASYNC_RUNTIME, DEFAULT_SERVER_ADDR, SERVER_PORT, hostname,
     resolver::{HandlerResolver, Operation},
 };
 use tokio::{
@@ -65,6 +66,7 @@ pub struct ExchangeResolver<T> {
 
 pub struct ExchangeResolverOptions<T> {
     pub new_signatures_callback: T,
+    // pub server_name: String,
 }
 
 impl<T> Debug for ExchangeResolverOptions<T> {
@@ -83,20 +85,27 @@ where
 
     type Err = ExchangeErrors;
 
-    fn new(opt: Self::Opt) -> Result<Self, Self::Err>
+    fn new(
+        ExchangeResolverOptions {
+            new_signatures_callback,
+        }: Self::Opt,
+    ) -> Result<Self, Self::Err>
     where
         Self: Sized,
     {
         let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
 
+        let a = SanType::DnsName(hostname().try_into().unwrap());
+
         let trusted_hosts = Default::default();
         let endpoint = ASYNC_RUNTIME.block_on(crate::endpoint::endpoint(
             DEFAULT_SERVER_ADDR,
+            vec![a],
             Arc::clone(&trusted_hosts),
             tx,
         ))?;
 
-        start_handling_new_signatures(rx, opt.new_signatures_callback);
+        start_handling_new_signatures(rx, new_signatures_callback);
         start_handling_incoming(endpoint.clone());
 
         Ok(Self {
@@ -120,7 +129,7 @@ where
                             [192, 168, 0, 104].into(),
                             SERVER_PORT,
                         )),
-                        "servername",
+                        &svudko_common::hostname(),
                     )?
                     .await?;
 

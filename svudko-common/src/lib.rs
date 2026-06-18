@@ -12,6 +12,16 @@ pub static ASYNC_RUNTIME: LazyLock<tokio::runtime::Runtime> =
 pub const DEFAULT_SERVER_ADDR: SocketAddr =
     SocketAddr::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), SERVER_PORT);
 
+#[cfg(debug_assertions)]
+pub const CERT_CA_PEM: &str = include_str!("../../build/debug-keys/rootCA.pem");
+#[cfg(not(debug_assertions))]
+pub const CERT_CA_PEM: &str = include_str!("../../build/release-keys/rootCA.pem");
+
+#[cfg(debug_assertions)]
+pub const CERT_CA_KEY_PEM: &str = include_str!("../../build/debug-keys/rootCA.key");
+#[cfg(not(debug_assertions))]
+pub const CERT_CA_KEY_PEM: &str = include_str!("../../build/release-keys/rootCA.key");
+
 pub const SERVER_PORT: u16 = 4443;
 
 pub static APP_DATA_DIR: LazyLock<PathBuf> = LazyLock::new(|| {

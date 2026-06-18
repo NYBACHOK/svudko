@@ -2,6 +2,6 @@ target/
 .DS_Store
 .bin
 .build
-build
 .idea
 .env
+build/release-keys/*

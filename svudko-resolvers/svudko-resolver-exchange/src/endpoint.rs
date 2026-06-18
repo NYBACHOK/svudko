@@ -2,7 +2,7 @@ use std::{
     collections::HashMap,
     net::SocketAddr,
     path::{Path, PathBuf},
-    sync::{Arc, RwLock},
+    sync::{Arc, LazyLock, RwLock},
 };
 
 use quinn::{
@@ -13,7 +13,8 @@ use quinn::{
         pki_types::{CertificateDer, PrivatePkcs8KeyDer, pem::PemObject},
     },
 };
-use svudko_common::APP_DATA_DIR;
+use rcgen::Issuer;
+use svudko_common::{APP_DATA_DIR, CERT_CA_KEY_PEM};
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
@@ -21,6 +22,14 @@ use crate::{
     models::UnknownSignature,
     verification::{client::WhiteListClientVerifier, server::DisabledServerVerifier},
 };
+
+static ROOT_CERT: LazyLock<Issuer<'static, rcgen::KeyPair>> = LazyLock::new(|| {
+    Issuer::from_ca_cert_pem(
+        svudko_common::CERT_CA_PEM,
+        rcgen::KeyPair::from_pem(CERT_CA_KEY_PEM).expect("always valid"),
+    )
+    .expect("always valid")
+});
 
 fn configure_server(
     cert_der: &CertificateDer<'static>,
@@ -77,7 +86,7 @@ pub async fn load_or_generate_cert(
 
     let key_pair = rcgen::KeyPair::generate()?;
 
-    let cert = params.self_signed(&key_pair)?;
+    let cert = params.signed_by(&key_pair, &*ROOT_CERT)?;
 
     tokio::fs::write(cert_file, cert.pem()).await?;
     tokio::fs::write(key_file, key_pair.serialize_pem()).await?;

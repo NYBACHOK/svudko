@@ -8,7 +8,7 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-rcgen.workspace = true  
+rcgen = { workspace = true, features = ["pem", "x509-parser"]}  
 x509-parser.workspace = true
 svudko-common.workspace = true
 tokio.workspace = true

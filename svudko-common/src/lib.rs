@@ -4,7 +4,6 @@ use std::{
     sync::LazyLock,
 };
 
-pub mod dummy_verification;
 pub mod resolver;
 
 pub static ASYNC_RUNTIME: LazyLock<tokio::runtime::Runtime> =

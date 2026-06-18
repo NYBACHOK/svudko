@@ -13,6 +13,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
 use crate::{event::ExchangeEvent, request::ExchangeCoreRequest};
 
+mod verification;
 mod endpoint;
 pub mod event;
 pub mod request;

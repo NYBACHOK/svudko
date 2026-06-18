@@ -8,9 +8,7 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-quinn.workspace = true
+tracing.workspace = true
 crux_core.workspace = true
-anyhow.workspace = true
 tokio = { workspace = true, features = []}
 dirs = "6"
-tracing.workspace = true

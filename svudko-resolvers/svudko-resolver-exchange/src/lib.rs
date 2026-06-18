@@ -1,7 +1,6 @@
 use std::{
     collections::HashMap,
-    net::{IpAddr, SocketAddr, SocketAddrV4},
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, RwLock},
 };
 
 use quinn::{Connection, Endpoint, Incoming, RecvStream};
@@ -11,14 +10,14 @@ use svudko_common::{
 };
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-use crate::{event::ExchangeEvent, request::ExchangeCoreRequest};
+use crate::{event::ExchangeEvent, request::ExchangeRequest};
 
-mod verification;
 mod endpoint;
 pub mod event;
 pub mod request;
+mod verification;
 
-const POISONED_MUTEX: &str = "poisoned lock";
+const POISONED_LOCK: &str = "poisoned lock";
 
 const MAX_CHUNK_LENGTH: usize = 20_000_000;
 
@@ -51,15 +50,15 @@ impl From<std::io::Error> for ExchangeErrors {
 #[derive(Clone, Debug)]
 pub struct ExchangeResolver {
     endpoint: Endpoint,
-    connections: HashMap<String, Connection>,
-
-    incoming_connections: Arc<Mutex<HashMap<String, (Connection, RecvStream)>>>,
+    trusted_hosts: Arc<RwLock<HashMap<String, String>>>,
+    // connections: HashMap<String, Connection>,
+    // incoming_connections: Arc<Mutex<HashMap<String, (Connection, RecvStream)>>>,
 }
 
 impl HandlerResolver for ExchangeResolver {
     type Opt = ();
 
-    type Op = ExchangeCoreRequest;
+    type Op = ExchangeRequest;
 
     type Err = ExchangeErrors;
 
@@ -67,69 +66,76 @@ impl HandlerResolver for ExchangeResolver {
     where
         Self: Sized,
     {
-        let incoming_connections = Default::default();
+        let trusted_hosts = Default::default();
         let endpoint = ASYNC_RUNTIME.block_on(crate::endpoint::endpoint(DEFAULT_SERVER_ADDR))?;
 
         start_handling_incoming(endpoint.clone());
 
         Ok(Self {
-            connections: HashMap::new(),
-            incoming_connections,
+            trusted_hosts,
             endpoint,
         })
     }
 
     async fn resolve(
         &mut self,
-        op: &ExchangeCoreRequest,
+        op: &ExchangeRequest,
     ) -> Result<<Self::Op as Operation>::Output, Self::Err> {
         match op {
-            ExchangeCoreRequest::Connect((ip_addr, hostname)) => self
-                .handle_connect(*ip_addr, hostname)
-                .await
-                .map(|()| ExchangeEvent::Connected(hostname.to_owned())),
-            ExchangeCoreRequest::Send(hostname) => self
-                .handle_send(hostname)
-                .await
-                .map(|()| ExchangeEvent::SendFile)
-                .map_err(Into::into),
+            // ExchangeRequest::Connect(hostname) => {
+            //     // self
+            //     // .handle_connect(*ip_addr, hostname)
+            //     // .await
+            //     // .map(|()| ExchangeEvent::Connected(hostname.to_owned()))
+            //     todo!()
+            // }
+            // ExchangeRequest::Send(hostname) => self
+            //     .handle_send(hostname)
+            //     .await
+            //     .map(|()| ExchangeEvent::SendFile)
+            //     .map_err(Into::into),
+            ExchangeRequest::TrustedHosts(trusted_hosts) => {
+                *self.trusted_hosts.write().expect(POISONED_LOCK) = trusted_hosts.to_owned();
+
+                Ok(ExchangeEvent::None)
+            }
         }
     }
 }
 
 impl ExchangeResolver {
-    pub async fn handle_connect(
-        &mut self,
-        ip: IpAddr,
-        hostname: &str,
-    ) -> Result<(), ExchangeErrors> {
-        let addr = match ip {
-            IpAddr::V4(ip) => SocketAddr::V4(SocketAddrV4::new(ip, SERVER_PORT)),
-            IpAddr::V6(_ip) => unimplemented!("ipv6 mode"), // SocketAddr::V6(SocketAddrV6::new(ip, SERVER_PORT, 0, 0)), // TODO: find real values
-        };
+    // pub async fn handle_connect(
+    //     &mut self,
+    //     ip: IpAddr,
+    //     hostname: &str,
+    // ) -> Result<(), ExchangeErrors> {
+    //     let addr = match ip {
+    //         IpAddr::V4(ip) => SocketAddr::V4(SocketAddrV4::new(ip, SERVER_PORT)),
+    //         IpAddr::V6(_ip) => unimplemented!("ipv6 mode"), // SocketAddr::V6(SocketAddrV6::new(ip, SERVER_PORT, 0, 0)), // TODO: find real values
+    //     };
 
-        let connection = self.endpoint.connect(addr, "servername")?.await?;
+    //     let connection = self.endpoint.connect(addr, "servername")?.await?;
 
-        self.connections.insert(hostname.to_owned(), connection);
+    //     self.connections.insert(hostname.to_owned(), connection);
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 
-    pub async fn handle_send(&mut self, hostname: &str) -> Result<(), anyhow::Error> {
-        let mut file = tokio::fs::File::open(APP_DATA_DIR.join("to-send-test-image.png")).await?;
+    // pub async fn handle_send(&mut self, hostname: &str) -> Result<(), anyhow::Error> {
+    //     let mut file = tokio::fs::File::open(APP_DATA_DIR.join("to-send-test-image.png")).await?;
 
-        let connection = self.connections.get(hostname).unwrap();
+    //     let connection = self.connections.get(hostname).unwrap();
 
-        let mut stream = connection.open_uni().await?;
+    //     let mut stream = connection.open_uni().await?;
 
-        let mut buffer = Vec::new();
+    //     let mut buffer = Vec::new();
 
-        file.read_to_end(&mut buffer).await?;
+    //     file.read_to_end(&mut buffer).await?;
 
-        stream.write_all(&buffer).await?;
+    //     stream.write_all(&buffer).await?;
 
-        Ok(())
-    }
+    //     Ok(())
+    // }
 }
 
 fn start_handling_incoming(endpoint: Endpoint) {

@@ -4,10 +4,7 @@
 use std::{error::Error, rc::Rc, sync::Arc};
 
 use slint::{ModelRc, SharedString, ToSharedString, VecModel};
-use svudko_core::{
-    ApplicationCore, Effect,
-    event::{Event, ExchangeRequest},
-};
+use svudko_core::{ApplicationCore, Effect, event::Event};
 use svudko_resolver_sd::request::ServiceDiscoveryRequest;
 
 slint::include_modules!();
@@ -72,28 +69,30 @@ fn main() -> Result<(), Box<dyn Error>> {
         let core = Arc::clone(&core);
 
         move || {
-            core.inner()
-                .update(Event::Dns(ServiceDiscoveryRequest::BrowseForServices));
+            core.inner().update(Event::ServiceDiscovery(
+                ServiceDiscoveryRequest::BrowseForServices,
+            ));
         }
     });
 
-    app.on_connect_to_host({
-        let core = Arc::clone(&core);
+    // app.on_connect_to_host({
+    //     let core = Arc::clone(&core);
 
-        move |hostname| {
-            core.inner()
-                .update(Event::Exchange(ExchangeRequest::Connect(
-                    hostname.to_string(),
-                )));
-        }
-    });
+    //     move |hostname| {
+    //         core.inner()
+    //             .update(Event::Exchange(ExchangeRequest::Connect(
+    //                 hostname.to_string(),
+    //             )));
+    //     }
+    // });
 
     app.on_enable_discover({
         let core = Arc::clone(&core);
 
         move || {
-            core.inner()
-                .update(Event::Dns(ServiceDiscoveryRequest::EnableService));
+            core.inner().update(Event::ServiceDiscovery(
+                ServiceDiscoveryRequest::EnableService,
+            ));
         }
     });
 
@@ -101,22 +100,24 @@ fn main() -> Result<(), Box<dyn Error>> {
         let core = Arc::clone(&core);
 
         move || {
-            core.inner()
-                .update(Event::Dns(ServiceDiscoveryRequest::DisableService));
+            core.inner().update(Event::ServiceDiscovery(
+                ServiceDiscoveryRequest::DisableService,
+            ));
         }
     });
 
-    app.on_send_debug_file({
-        let core = Arc::clone(&core);
+    // app.on_send_debug_file({
+    //     let core = Arc::clone(&core);
 
-        move |hostname| {
-            core.inner()
-                .update(Event::Exchange(ExchangeRequest::SendFile(
-                    hostname.to_string(),
-                )));
-        }
-    });
+    //     move |hostname| {
+    //         core.inner()
+    //             .update(Event::Exchange(ExchangeRequest::SendFile(
+    //                 hostname.to_string(),
+    //             )));
+    //     }
+    // });
 
+    core.inner().update(Event::Initialize);
     app.run()?;
 
     Ok(())

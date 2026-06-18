@@ -1,5 +1,6 @@
 #[derive(Clone, Debug)]
 pub enum ExchangeEvent {
-    Connected(String),
-    SendFile,
+    None,
+    // Connected(String),
+    // SendFile,
 }

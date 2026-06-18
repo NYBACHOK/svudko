@@ -15,5 +15,5 @@ pub trait HandlerResolver: Send + Sync + 'static {
     fn resolve(
         &mut self,
         op: &Self::Op,
-    ) -> impl Future<Output = Result<<Self::Op as Operation>::Output, Self::Err>> + Send + Sync;
+    ) -> impl Future<Output = Result<<Self::Op as Operation>::Output, Self::Err>> + Send;
 }

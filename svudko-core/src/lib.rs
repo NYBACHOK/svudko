@@ -5,7 +5,7 @@ use crux_core::{
     render::RenderOperation,
 };
 use svudko_common::resolver::HandlerResolver;
-use svudko_resolver_exchange::{ExchangeResolver, request::ExchangeCoreRequest};
+use svudko_resolver_exchange::{ExchangeResolver, request::ExchangeRequest};
 use svudko_resolver_sd::{SdResolver, request::ServiceDiscoveryRequest};
 
 mod app;
@@ -42,7 +42,7 @@ impl From<RustCoreEffect> for Effect {
 #[derive(Clone)]
 pub struct EffectRoutes {
     dns: Arc<Handler<ServiceDiscoveryRequest>>,
-    connection: Arc<Handler<ExchangeCoreRequest>>,
+    connection: Arc<Handler<ExchangeRequest>>,
     storage: Arc<Handler<StorageRequest>>,
 }
 
@@ -67,7 +67,9 @@ impl ApplicationCore {
     pub fn new<T: CruxShell + Send + Sync + 'static>(shell: Arc<T>) -> Self {
         let router = EffectRouter::new(crux_core::Core::new(), move |routes: EffectRoutes| {
             move |effect| match effect {
-                RustCoreEffect::Core(CoreEffect::DnsSd(request)) => routes.dns.process(request),
+                RustCoreEffect::Core(CoreEffect::ServiceDiscovery(request)) => {
+                    routes.dns.process(request)
+                }
                 RustCoreEffect::Core(CoreEffect::Connection(request)) => {
                     routes.connection.process(request);
                 }

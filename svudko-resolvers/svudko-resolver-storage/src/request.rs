@@ -1,9 +1,12 @@
 use svudko_common::resolver::Operation;
 
-use crate::event::StorageEvent;
+use crate::{event::StorageEvent, models::TrustedHost};
 
-#[derive(Clone, Debug)]
-pub enum StorageRequest {}
+#[derive(Debug, Clone)]
+pub enum StorageRequest {
+    Fetch,
+    NewHost { host: TrustedHost, overwrite: bool },
+}
 
 impl Operation for StorageRequest {
     type Output = StorageEvent;

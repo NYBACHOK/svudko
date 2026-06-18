@@ -1,5 +1,5 @@
 use crux_core::{Request, render::RenderOperation};
-use svudko_resolver_exchange::request::ExchangeCoreRequest;
+use svudko_resolver_exchange::request::ExchangeRequest;
 use svudko_resolver_sd::request::ServiceDiscoveryRequest;
 use svudko_resolver_storage::request::StorageRequest;
 
@@ -16,8 +16,8 @@ pub enum Effect {
 
 #[derive(Debug)]
 pub enum CoreEffect {
-    DnsSd(Request<ServiceDiscoveryRequest>),
-    Connection(Request<ExchangeCoreRequest>),
+    ServiceDiscovery(Request<ServiceDiscoveryRequest>),
+    Connection(Request<ExchangeRequest>),
     Storage(Request<StorageRequest>),
 }
 
@@ -31,12 +31,12 @@ impl From<Request<RenderOperation>> for Effect {
 
 impl From<Request<ServiceDiscoveryRequest>> for Effect {
     fn from(value: Request<ServiceDiscoveryRequest>) -> Self {
-        Self::Core(CoreEffect::DnsSd(value))
+        Self::Core(CoreEffect::ServiceDiscovery(value))
     }
 }
 
-impl From<Request<ExchangeCoreRequest>> for Effect {
-    fn from(value: Request<ExchangeCoreRequest>) -> Self {
+impl From<Request<ExchangeRequest>> for Effect {
+    fn from(value: Request<ExchangeRequest>) -> Self {
         Self::Core(CoreEffect::Connection(value))
     }
 }

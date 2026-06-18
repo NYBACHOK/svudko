@@ -1,17 +1,14 @@
-mod shell;
-
-use svudko_resolver_exchange::{ExchangeErrors, event::ExchangeEvent};
+use svudko_resolver_exchange::{ExchangeErrors, event::ExchangeEvent, request::ExchangeRequest};
 use svudko_resolver_sd::{
     DnsSdErrors, event::ServiceDiscoveryEvent, request::ServiceDiscoveryRequest,
 };
 use svudko_resolver_storage::{StorageErrors, event::StorageEvent, request::StorageRequest};
 
-pub use self::shell::*;
-
 #[derive(Clone, Debug)]
 pub enum Event {
+    Initialize,
     // Shell shared events
-    Dns(ServiceDiscoveryRequest),
+    ServiceDiscovery(ServiceDiscoveryRequest),
     Exchange(ExchangeRequest),
     Storage(StorageRequest),
 
@@ -42,5 +39,41 @@ impl From<ExchangeErrors> for Event {
 impl From<StorageErrors> for Event {
     fn from(value: StorageErrors) -> Self {
         Self::Core(CoreEvent::Error(value.to_string()))
+    }
+}
+
+impl From<StorageRequest> for Event {
+    fn from(value: StorageRequest) -> Self {
+        Self::Storage(value)
+    }
+}
+
+impl From<StorageEvent> for Event {
+    fn from(value: StorageEvent) -> Self {
+        Self::Core(CoreEvent::Storage(value))
+    }
+}
+
+impl From<ExchangeRequest> for Event {
+    fn from(value: ExchangeRequest) -> Self {
+        Self::Exchange(value)
+    }
+}
+
+impl From<ExchangeEvent> for Event {
+    fn from(value: ExchangeEvent) -> Self {
+        Self::Core(CoreEvent::Exchange(value))
+    }
+}
+
+impl From<ServiceDiscoveryRequest> for Event {
+    fn from(value: ServiceDiscoveryRequest) -> Self {
+        Self::ServiceDiscovery(value)
+    }
+}
+
+impl From<ServiceDiscoveryEvent> for Event {
+    fn from(value: ServiceDiscoveryEvent) -> Self {
+        Self::Core(CoreEvent::DnsReponses(value))
     }
 }

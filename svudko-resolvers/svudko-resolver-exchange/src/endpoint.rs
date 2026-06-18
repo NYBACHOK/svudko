@@ -58,10 +58,12 @@ fn configure_server(
 fn configure_client(cert_file: PathBuf) -> Result<ClientConfig, ExchangeErrors> {
     let mut certs = rustls::RootCertStore::empty();
     certs.add(CertificateDer::from_pem_file(cert_file)?)?;
+    certs.add(CertificateDer::from_pem_slice(
+        svudko_common::CERT_CA_PEM.as_bytes(),
+    )?)?;
 
     let client_crypto = rustls::ClientConfig::builder()
-        .dangerous()
-        .with_custom_certificate_verifier(DisabledServerVerifier::new())
+        .with_root_certificates(certs)
         .with_no_client_auth();
 
     let client_config = ClientConfig::new(Arc::new(QuicClientConfig::try_from(client_crypto)?));

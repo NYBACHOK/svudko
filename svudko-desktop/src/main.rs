@@ -18,6 +18,7 @@ impl From<svudko_core::view_model::ViewModel> for ViewModel {
         svudko_core::view_model::ViewModel {
             enabled_discover,
             discovered_services,
+            unknown_signatures,
         }: svudko_core::view_model::ViewModel,
     ) -> Self {
         Self {
@@ -26,6 +27,15 @@ impl From<svudko_core::view_model::ViewModel> for ViewModel {
                 discovered_services
                     .into_iter()
                     .map(SharedString::from)
+                    .collect::<VecModel<_>>(),
+            )),
+            pending_hosts: ModelRc::new(Rc::new(
+                unknown_signatures
+                    .into_iter()
+                    .map(|(name, signature)| PendingHost {
+                        name: name.to_shared_string(),
+                        signature: signature.to_shared_string(),
+                    })
                     .collect::<VecModel<_>>(),
             )),
         }

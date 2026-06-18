@@ -1,5 +1,8 @@
+pub mod models;
 use std::{
     collections::HashMap,
+    fmt::Debug,
+    marker::PhantomData,
     sync::{Arc, Mutex, RwLock},
 };
 
@@ -8,9 +11,12 @@ use svudko_common::{
     APP_DATA_DIR, ASYNC_RUNTIME, DEFAULT_SERVER_ADDR, SERVER_PORT,
     resolver::{HandlerResolver, Operation},
 };
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::{
+    io::{AsyncReadExt, AsyncWriteExt},
+    sync::mpsc::{Receiver, UnboundedReceiver},
+};
 
-use crate::{event::ExchangeEvent, request::ExchangeRequest};
+use crate::{event::ExchangeEvent, models::UnknownSignature, request::ExchangeRequest};
 
 mod endpoint;
 pub mod event;
@@ -47,33 +53,55 @@ impl From<std::io::Error> for ExchangeErrors {
     }
 }
 
-#[derive(Clone, Debug)]
-pub struct ExchangeResolver {
+#[derive(Debug)]
+pub struct ExchangeResolver<T> {
     endpoint: Endpoint,
     trusted_hosts: Arc<RwLock<HashMap<String, String>>>,
+    _phantom: PhantomData<T>,
     // connections: HashMap<String, Connection>,
     // incoming_connections: Arc<Mutex<HashMap<String, (Connection, RecvStream)>>>,
 }
 
-impl HandlerResolver for ExchangeResolver {
-    type Opt = ();
+pub struct ExchangeResolverOptions<T> {
+    pub new_signatures_callback: T,
+}
+
+impl<T> Debug for ExchangeResolverOptions<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ExchangeResolverOptions").finish()
+    }
+}
+
+impl<T> HandlerResolver for ExchangeResolver<T>
+where
+    T: Fn(UnknownSignature) + Send + Sync + 'static,
+{
+    type Opt = ExchangeResolverOptions<T>;
 
     type Op = ExchangeRequest;
 
     type Err = ExchangeErrors;
 
-    fn new((): Self::Opt) -> Result<Self, Self::Err>
+    fn new(opt: Self::Opt) -> Result<Self, Self::Err>
     where
         Self: Sized,
     {
-        let trusted_hosts = Default::default();
-        let endpoint = ASYNC_RUNTIME.block_on(crate::endpoint::endpoint(DEFAULT_SERVER_ADDR))?;
+        let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
 
+        let trusted_hosts = Default::default();
+        let endpoint = ASYNC_RUNTIME.block_on(crate::endpoint::endpoint(
+            DEFAULT_SERVER_ADDR,
+            Arc::clone(&trusted_hosts),
+            tx,
+        ))?;
+
+        start_handling_new_signatures(rx, opt.new_signatures_callback);
         start_handling_incoming(endpoint.clone());
 
         Ok(Self {
             trusted_hosts,
             endpoint,
+            _phantom: PhantomData,
         })
     }
 
@@ -103,7 +131,7 @@ impl HandlerResolver for ExchangeResolver {
     }
 }
 
-impl ExchangeResolver {
+impl<T> ExchangeResolver<T> {
     // pub async fn handle_connect(
     //     &mut self,
     //     ip: IpAddr,
@@ -136,6 +164,17 @@ impl ExchangeResolver {
 
     //     Ok(())
     // }
+}
+
+fn start_handling_new_signatures<T: Fn(UnknownSignature) + Send + Sync + 'static>(
+    mut rx: UnboundedReceiver<UnknownSignature>,
+    callback: T,
+) {
+    ASYNC_RUNTIME.spawn(async move {
+        while let Some(msg) = rx.recv().await {
+            callback(msg)
+        }
+    });
 }
 
 fn start_handling_incoming(endpoint: Endpoint) {

@@ -5,9 +5,15 @@ import {
     ListView,
 } from "std-widgets.slint";
 
+struct PendingHost {
+    name : string,
+    signature : string,
+}
+
 struct ViewModel {
     enabled_discover: bool,
     discovered_hosts: [string],
+    pending_hosts: [PendingHost],
 }
 
 export component AppWindow inherits Window {
@@ -21,16 +27,22 @@ export component AppWindow inherits Window {
     callback connect_to_host(string);
     callback send_debug_file(string);
 
+    callback allow_host(PendingHost);
+
     min-width: 360px;
     min-height: 500px;
     title: "Svudko";
     background: #17171a;
 
     VerticalLayout {
-        ListView {
-            for host[i] in model.discovered-hosts: HorizontalBox {
+        VerticalLayout {
+            Text {
+                text: "Scan result";
+            }
 
-                HorizontalBox {
+            ListView {
+                for host[i] in model.discovered_hosts: HorizontalBox {
+
                     height: 20%;
                     Text {
                         text: host;
@@ -49,6 +61,31 @@ export component AppWindow inherits Window {
                         text: "Send Debug File";
                         clicked => {
                             root.send_debug_file(host)
+                        }
+                    }
+                }
+            }
+        }
+
+        VerticalLayout {
+            Text {
+                text: "Pending approvals";
+            }
+
+            ListView {
+                for host[i] in model.pending_hosts: HorizontalBox {
+                    height: 20%;
+
+                    Text {
+                        text: host.name;
+                        vertical-alignment: center;
+                        color: #ffffff;
+                    }
+
+                    Button {
+                        text: "Allow";
+                        clicked => {
+                            root.allow_host(host);
                         }
                     }
                 }

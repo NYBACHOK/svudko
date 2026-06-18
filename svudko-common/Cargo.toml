@@ -11,4 +11,5 @@ workspace = true
 tracing.workspace = true
 crux_core.workspace = true
 tokio = { workspace = true, features = []}
-dirs = "6"
+gethostname.workspace = true
+dirs.workspace = true

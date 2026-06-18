@@ -6,6 +6,7 @@ use mdns_sd::{ResolvedService, ScopedIp};
 pub struct Model {
     pub load_state: LoadState,
     pub trusted_hosts: HashMap<String, String>,
+    pub unknown_signatures : HashMap<String, String>,
     pub dns_sd: DnsSdResult,
 }
 

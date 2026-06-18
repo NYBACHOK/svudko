@@ -5,7 +5,9 @@ use crux_core::{
     render::RenderOperation,
 };
 use svudko_common::resolver::HandlerResolver;
-use svudko_resolver_exchange::{ExchangeResolver, request::ExchangeRequest};
+use svudko_resolver_exchange::{
+    ExchangeResolver, ExchangeResolverOptions, event::ExchangeEvent, request::ExchangeRequest,
+};
 use svudko_resolver_sd::{SdResolver, request::ServiceDiscoveryRequest};
 
 mod app;
@@ -15,7 +17,10 @@ pub use app::*;
 pub use crux_core::App;
 use svudko_resolver_storage::{StorageResolver, request::StorageRequest};
 
-use crate::{app::effect::CoreEffect, handler::Handler};
+use crate::{
+    app::{effect::CoreEffect, event::Event},
+    handler::Handler,
+};
 
 use crate::app::effect::Effect as RustCoreEffect;
 
@@ -52,7 +57,19 @@ impl Routes<Application> for EffectRoutes {
             dns: Arc::new(Handler::new(Weak::clone(&router), SdResolver::new(()))),
             connection: Arc::new(Handler::new(
                 Weak::clone(&router),
-                ExchangeResolver::new(()),
+                ExchangeResolver::new(ExchangeResolverOptions {
+                    new_signatures_callback: {
+                        let router = Weak::clone(&router);
+
+                        move |msg| {
+                            if let Some(router) = router.upgrade() {
+                                router.update(Event::Core(event::CoreEvent::Exchange(
+                                    ExchangeEvent::UnknownSignature(msg),
+                                )));
+                            }
+                        }
+                    },
+                }),
             )),
             storage: Arc::new(Handler::new(Weak::clone(&router), StorageResolver::new(()))),
         }

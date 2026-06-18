@@ -5940,6 +5940,7 @@ version = "0.1.0"
 dependencies = [
  "crux_core",
  "dirs",
+ "gethostname",
  "tokio",
  "tracing",
 ]
@@ -5992,6 +5993,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tracing",
+ "x509-parser",
 ]
 
 [[package]]

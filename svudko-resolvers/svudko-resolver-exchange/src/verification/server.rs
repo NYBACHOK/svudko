@@ -2,20 +2,21 @@ use std::sync::Arc;
 
 use quinn::rustls::{
     self,
+    client::danger::ServerCertVerifier,
     pki_types::{CertificateDer, ServerName, UnixTime},
 };
 
 #[derive(Debug)]
-pub struct SkipServerVerification(Arc<rustls::crypto::CryptoProvider>);
+pub struct DisabledServerVerifier(Arc<rustls::crypto::CryptoProvider>);
 
-impl SkipServerVerification {
+impl DisabledServerVerifier {
     #[must_use]
     pub fn new() -> Arc<Self> {
         Arc::new(Self(Arc::new(rustls::crypto::ring::default_provider())))
     }
 }
 
-impl rustls::client::danger::ServerCertVerifier for SkipServerVerification {
+impl ServerCertVerifier for DisabledServerVerifier {
     fn verify_server_cert(
         &self,
         _end_entity: &CertificateDer<'_>,

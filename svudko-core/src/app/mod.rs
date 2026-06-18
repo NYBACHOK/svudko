@@ -1,7 +1,9 @@
 use crux_core::{
     App, Command, capability::Operation, command::NotificationBuilder, render::render,
 };
-use svudko_resolver_exchange::{event::ExchangeEvent, request::ExchangeRequest};
+use svudko_resolver_exchange::{
+    event::ExchangeEvent, models::UnknownSignature, request::ExchangeRequest,
+};
 use svudko_resolver_sd::event::ServiceDiscoveryEvent;
 use svudko_resolver_storage::{event::StorageEvent, request::StorageRequest};
 
@@ -63,6 +65,7 @@ impl App for Application {
     fn view(&self, model: &Self::Model) -> Self::ViewModel {
         let view = Self::ViewModel {
             enabled_discover: model.dns_sd.enabled_discover,
+            unknown_signatures: model.unknown_signatures.clone(),
             discovered_services: model
                 .dns_sd
                 .discovered_services
@@ -103,10 +106,17 @@ fn handle_storage_events(
 
 fn handle_quick_events(
     event: ExchangeEvent,
-    _model: &mut Model,
+    model: &mut Model,
 ) -> crux_core::Command<Effect, Event> {
     match event {
         ExchangeEvent::None => Command::done(),
+        ExchangeEvent::UnknownSignature(UnknownSignature {
+            hostname,
+            signature,
+        }) => {
+            model.unknown_signatures.insert(hostname, signature);
+            render()
+        }
     }
 }
 

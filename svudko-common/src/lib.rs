@@ -37,3 +37,9 @@ fn data_dir() -> PathBuf {
         })
     }
 }
+
+pub fn hostname() -> String {
+    gethostname::gethostname()
+        .to_string_lossy()
+        .replace(char::REPLACEMENT_CHARACTER, "")
+}

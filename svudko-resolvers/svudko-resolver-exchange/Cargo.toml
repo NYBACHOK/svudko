@@ -8,7 +8,8 @@ edition.workspace = true
 workspace = true
 
 [dependencies]
-rcgen.workspace = true 
+rcgen.workspace = true  
+x509-parser.workspace = true
 svudko-common.workspace = true
 tokio.workspace = true
 tracing.workspace = true
@@ -16,4 +17,5 @@ thiserror.workspace = true
 anyhow.workspace = true
 quinn.workspace = true 
 data-encoding.workspace = true 
-sha2 = "0.11" 
+sha2.workspace = true
+

@@ -1,4 +1,4 @@
-use std::{fmt::Debug, sync::Weak};
+use std::sync::Weak;
 
 use crux_core::{
     App, Request,
@@ -20,7 +20,7 @@ impl<T: Operation> Handler<T> {
         operator: Result<I, I::Err>,
     ) -> Self
     where
-        I: HandlerResolver<Op = T, Err: Into<<Application as App>::Event> + Send> + Debug,
+        I: HandlerResolver<Op = T, Err: Into<<Application as App>::Event> + Send>,
     {
         let (jobs_tx, mut jobs_rx) = tokio::sync::mpsc::unbounded_channel::<Request<T>>();
 
@@ -29,7 +29,7 @@ impl<T: Operation> Handler<T> {
                 let mut operator = if let Ok(operator) = operator {
                     operator
                 } else {
-                    let err = operator.expect_err("matched to err");
+                    let err = operator.err().expect("matched to err");
 
                     tracing::error!(err = ?err, "error in handler during initialization");
 

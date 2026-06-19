@@ -1,4 +1,6 @@
-use svudko_resolver_exchange::{ExchangeErrors, event::ExchangeEvent, request::ExchangeRequest};
+use svudko_resolver_exchange::{
+    errors::ExchangeErrors, event::ExchangeEvent, request::ExchangeRequest,
+};
 use svudko_resolver_sd::{
     DnsSdErrors, event::ServiceDiscoveryEvent, request::ServiceDiscoveryRequest,
 };

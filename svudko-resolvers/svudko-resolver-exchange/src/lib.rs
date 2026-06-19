@@ -1,4 +1,3 @@
-pub mod models;
 use std::{
     collections::HashMap,
     fmt::Debug,
@@ -18,42 +17,21 @@ use tokio::{
     sync::mpsc::{Receiver, UnboundedReceiver},
 };
 
-use crate::{event::ExchangeEvent, models::UnknownSignature, request::ExchangeRequest};
+use crate::{
+    errors::ExchangeErrors, event::ExchangeEvent, models::UnknownSignature,
+    request::ExchangeRequest,
+};
 
 mod endpoint;
+pub mod errors;
 pub mod event;
+pub mod models;
 pub mod request;
 mod verification;
 
 const POISONED_LOCK: &str = "poisoned lock";
 
 const MAX_CHUNK_LENGTH: usize = 20_000_000;
-
-#[derive(Debug, thiserror::Error)]
-pub enum ExchangeErrors {
-    #[error(transparent)]
-    Connection(#[from] quinn::ConnectionError),
-    #[error(transparent)]
-    Connect(#[from] quinn::ConnectError),
-    #[error("{0}")]
-    Io(String),
-    #[error(transparent)]
-    Tls(#[from] quinn::rustls::pki_types::pem::Error),
-    #[error(transparent)]
-    Rustls(#[from] quinn::rustls::Error),
-    #[error(transparent)]
-    NoInitialCipherSuite(#[from] quinn::crypto::rustls::NoInitialCipherSuite),
-    #[error(transparent)]
-    Rcgen(#[from] rcgen::Error),
-    #[error(transparent)]
-    Tmp(#[from] anyhow::Error),
-}
-
-impl From<std::io::Error> for ExchangeErrors {
-    fn from(value: std::io::Error) -> Self {
-        Self::Io(value.to_string())
-    }
-}
 
 #[derive(Debug)]
 pub struct ExchangeResolver<T> {

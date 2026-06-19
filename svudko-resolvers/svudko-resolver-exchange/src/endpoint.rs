@@ -18,7 +18,8 @@ use svudko_common::{APP_DATA_DIR, CERT_CA_KEY_PEM};
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
-    ExchangeErrors, models::UnknownSignature, verification::client::WhiteListClientVerifier,
+    errors::ExchangeInitializeErrors, models::UnknownSignature,
+    verification::client::WhiteListClientVerifier,
 };
 
 static ROOT_CERT: LazyLock<CertificateDer<'static>> = LazyLock::new(|| {
@@ -30,7 +31,7 @@ fn configure_server(
     key_der: PrivateKeyDer<'static>,
     trusted_hosts: Arc<RwLock<HashMap<String, String>>>,
     tx: UnboundedSender<UnknownSignature>,
-) -> Result<ServerConfig, ExchangeErrors> {
+) -> Result<ServerConfig, ExchangeInitializeErrors> {
     let tofu = WhiteListClientVerifier::new(trusted_hosts, tx);
 
     let tls_server = rustls::ServerConfig::builder()
@@ -50,7 +51,7 @@ fn configure_server(
 fn configure_client(
     cert_der: CertificateDer<'static>,
     key_der: PrivateKeyDer<'static>,
-) -> Result<ClientConfig, ExchangeErrors> {
+) -> Result<ClientConfig, ExchangeInitializeErrors> {
     let mut certs = rustls::RootCertStore::empty();
 
     certs.add(ROOT_CERT.clone())?;
@@ -68,7 +69,7 @@ async fn load_or_generate_cert(
     cert_file: &Path,
     key_file: &Path,
     names: Vec<SanType>,
-) -> Result<(CertificateDer<'static>, rcgen::KeyPair), ExchangeErrors> {
+) -> Result<(CertificateDer<'static>, rcgen::KeyPair), ExchangeInitializeErrors> {
     if cert_file.exists() && key_file.exists() {
         let key_pem = std::fs::read_to_string(key_file)?;
         return Ok((
@@ -106,7 +107,7 @@ pub async fn endpoint(
     names: Vec<SanType>,
     trusted_hosts: Arc<RwLock<HashMap<String, String>>>,
     tx: UnboundedSender<UnknownSignature>,
-) -> Result<Endpoint, ExchangeErrors> {
+) -> Result<Endpoint, ExchangeInitializeErrors> {
     if !APP_DATA_DIR.exists() {
         tokio::fs::create_dir_all(&*APP_DATA_DIR).await?;
     }

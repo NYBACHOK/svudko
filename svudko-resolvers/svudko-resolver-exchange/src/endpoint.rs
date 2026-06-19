@@ -10,7 +10,7 @@ use quinn::{
     crypto::rustls::{QuicClientConfig, QuicServerConfig},
     rustls::{
         self,
-        pki_types::{CertificateDer, PrivatePkcs8KeyDer, pem::PemObject},
+        pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer, pem::PemObject},
     },
 };
 use rcgen::{Issuer, SanType};
@@ -55,20 +55,23 @@ fn configure_server(
     Ok(server_config)
 }
 
-fn configure_client(cert_file: PathBuf) -> Result<ClientConfig, ExchangeErrors> {
+fn configure_client(cert_file: PathBuf, key_file: &Path) -> Result<ClientConfig, ExchangeErrors> {
     let mut certs = rustls::RootCertStore::empty();
-    certs.add(CertificateDer::from_pem_file(cert_file)?)?;
+
     certs.add(CertificateDer::from_pem_slice(
         svudko_common::CERT_CA_PEM.as_bytes(),
     )?)?;
 
     let client_crypto = rustls::ClientConfig::builder()
         .with_root_certificates(certs)
-        .with_no_client_auth();
+        .with_client_auth_cert(
+            vec![CertificateDer::from_pem_file(cert_file)?],
+            PrivateKeyDer::from_pem_file(key_file).unwrap(),
+        )?;
 
-    let client_config = ClientConfig::new(Arc::new(QuicClientConfig::try_from(client_crypto)?));
-
-    Ok(client_config)
+    Ok(ClientConfig::new(Arc::new(QuicClientConfig::try_from(
+        client_crypto,
+    )?)))
 }
 
 pub async fn load_or_generate_cert(
@@ -112,7 +115,7 @@ pub async fn endpoint(
     let key_file = APP_DATA_DIR.join("private_key.pem");
     let cert = load_or_generate_cert(&cert_file, &key_file, names).await?;
 
-    let client_cfg = configure_client(cert_file)?;
+    let client_cfg = configure_client(cert_file, &key_file)?;
     let server_cfg = configure_server(&cert, &key_file, trusted_hosts, tx)?;
 
     let mut endpoint = Endpoint::server(server_cfg, addr)?;

@@ -129,7 +129,7 @@ where
                             [192, 168, 0, 104].into(),
                             SERVER_PORT,
                         )),
-                        &svudko_common::hostname(),
+                        "ghubas-MacBook-Pro.local",
                     )?
                     .await?;
 

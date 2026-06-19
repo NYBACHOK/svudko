@@ -77,7 +77,7 @@ impl ClientCertVerifier for WhiteListClientVerifier {
         });
 
         Err(rustls::Error::General(
-            "certificate fingerprint mismatch".into(),
+            "missing permission for connection".into(),
         ))
     }
 

@@ -1,7 +1,7 @@
 use std::{
     collections::HashMap,
     net::SocketAddr,
-    path::{Path, PathBuf},
+    path::Path,
     sync::{Arc, LazyLock, RwLock},
 };
 
@@ -10,7 +10,7 @@ use quinn::{
     crypto::rustls::{QuicClientConfig, QuicServerConfig},
     rustls::{
         self,
-        pki_types::{CertificateDer, PrivateKeyDer, PrivatePkcs8KeyDer, pem::PemObject},
+        pki_types::{CertificateDer, PrivateKeyDer, pem::PemObject},
     },
 };
 use rcgen::{Issuer, SanType};
@@ -18,32 +18,24 @@ use svudko_common::{APP_DATA_DIR, CERT_CA_KEY_PEM};
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
-    ExchangeErrors,
-    models::UnknownSignature,
-    verification::{client::WhiteListClientVerifier, server::DisabledServerVerifier},
+    ExchangeErrors, models::UnknownSignature, verification::client::WhiteListClientVerifier,
 };
 
-static ROOT_CERT: LazyLock<Issuer<'static, rcgen::KeyPair>> = LazyLock::new(|| {
-    Issuer::from_ca_cert_pem(
-        svudko_common::CERT_CA_PEM,
-        rcgen::KeyPair::from_pem(CERT_CA_KEY_PEM).expect("always valid"),
-    )
-    .expect("always valid")
+static ROOT_CERT: LazyLock<CertificateDer<'static>> = LazyLock::new(|| {
+    CertificateDer::from_pem_slice(svudko_common::CERT_CA_PEM.as_bytes()).expect("alway valid")
 });
 
 fn configure_server(
-    cert_der: &CertificateDer<'static>,
-    key_file: &PathBuf,
+    cert_der: CertificateDer<'static>,
+    key_der: PrivateKeyDer<'static>,
     trusted_hosts: Arc<RwLock<HashMap<String, String>>>,
     tx: UnboundedSender<UnknownSignature>,
 ) -> Result<ServerConfig, ExchangeErrors> {
-    let priv_key = PrivatePkcs8KeyDer::from_pem_file(key_file)?;
-
     let tofu = WhiteListClientVerifier::new(trusted_hosts, tx);
 
     let tls_server = rustls::ServerConfig::builder()
         .with_client_cert_verifier(Arc::new(tofu))
-        .with_single_cert(vec![cert_der.clone()], priv_key.into())?;
+        .with_single_cert(vec![cert_der], key_der)?;
 
     let quic_crypto = QuicServerConfig::try_from(tls_server)?;
     let mut server_config = ServerConfig::with_crypto(Arc::new(quic_crypto));
@@ -55,33 +47,34 @@ fn configure_server(
     Ok(server_config)
 }
 
-fn configure_client(cert_file: PathBuf, key_file: &Path) -> Result<ClientConfig, ExchangeErrors> {
+fn configure_client(
+    cert_der: CertificateDer<'static>,
+    key_der: PrivateKeyDer<'static>,
+) -> Result<ClientConfig, ExchangeErrors> {
     let mut certs = rustls::RootCertStore::empty();
 
-    certs.add(CertificateDer::from_pem_slice(
-        svudko_common::CERT_CA_PEM.as_bytes(),
-    )?)?;
+    certs.add(ROOT_CERT.clone())?;
 
     let client_crypto = rustls::ClientConfig::builder()
         .with_root_certificates(certs)
-        .with_client_auth_cert(
-            vec![CertificateDer::from_pem_file(cert_file)?],
-            PrivateKeyDer::from_pem_file(key_file).unwrap(),
-        )?;
+        .with_client_auth_cert(vec![cert_der], key_der)?;
 
     Ok(ClientConfig::new(Arc::new(QuicClientConfig::try_from(
         client_crypto,
     )?)))
 }
 
-pub async fn load_or_generate_cert(
+async fn load_or_generate_cert(
     cert_file: &Path,
     key_file: &Path,
     names: Vec<SanType>,
-) -> Result<CertificateDer<'static>, ExchangeErrors> {
+) -> Result<(CertificateDer<'static>, rcgen::KeyPair), ExchangeErrors> {
     if cert_file.exists() && key_file.exists() {
-        let cert_pem = std::fs::read_to_string(cert_file)?;
-        return Ok(CertificateDer::from_pem_slice(cert_pem.as_bytes())?.into_owned());
+        let key_pem = std::fs::read_to_string(key_file)?;
+        return Ok((
+            CertificateDer::from_pem_file(cert_file)?,
+            rcgen::KeyPair::from_pem(&key_pem)?,
+        ));
     }
 
     let mut params = rcgen::CertificateParams::default();
@@ -93,12 +86,19 @@ pub async fn load_or_generate_cert(
 
     let key_pair = rcgen::KeyPair::generate()?;
 
-    let cert = params.signed_by(&key_pair, &*ROOT_CERT)?;
+    let cert = params.signed_by(
+        &key_pair,
+        &Issuer::from_ca_cert_pem(
+            svudko_common::CERT_CA_PEM,
+            rcgen::KeyPair::from_pem(CERT_CA_KEY_PEM).expect("always valid"),
+        )
+        .expect("always valid"),
+    )?;
 
     tokio::fs::write(cert_file, cert.pem()).await?;
     tokio::fs::write(key_file, key_pair.serialize_pem()).await?;
 
-    Ok(cert.into())
+    Ok((cert.into(), key_pair))
 }
 
 pub async fn endpoint(
@@ -113,10 +113,12 @@ pub async fn endpoint(
 
     let cert_file = APP_DATA_DIR.join("certificate.pem");
     let key_file = APP_DATA_DIR.join("private_key.pem");
-    let cert = load_or_generate_cert(&cert_file, &key_file, names).await?;
+    let (cert, keypair) = load_or_generate_cert(&cert_file, &key_file, names).await?;
 
-    let client_cfg = configure_client(cert_file, &key_file)?;
-    let server_cfg = configure_server(&cert, &key_file, trusted_hosts, tx)?;
+    let priv_key = PrivateKeyDer::from(keypair);
+
+    let client_cfg = configure_client(cert.clone(), priv_key.clone_key())?;
+    let server_cfg = configure_server(cert, priv_key, trusted_hosts, tx)?;
 
     let mut endpoint = Endpoint::server(server_cfg, addr)?;
     endpoint.set_default_client_config(client_cfg);

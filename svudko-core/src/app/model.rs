@@ -1,20 +1,19 @@
 use std::collections::{HashMap, HashSet};
 
-use mdns_sd::{ResolvedService, ScopedIp};
+use mdns_sd::ResolvedService;
+use svudko_common::hostname::Hostname;
 
 #[derive(Debug, Clone, Default)]
 pub struct Model {
     pub load_state: LoadState,
-    pub trusted_hosts: HashMap<String, String>,
-    pub unknown_signatures : HashMap<String, String>,
+    pub trusted_signatures: HashSet<String>,
+    pub unknown_signatures: HashMap<Hostname, String>,
     pub dns_sd: DnsSdResult,
 }
 
 #[derive(Debug, Clone, Default)]
 pub struct DnsSdResult {
     pub enabled_discover: bool,
-    pub hostname: Option<String>,
-    pub dedicated_search: HashSet<ScopedIp>,
     pub discovered_services: HashMap<String, Box<ResolvedService>>,
 }
 

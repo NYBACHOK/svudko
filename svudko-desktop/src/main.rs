@@ -4,8 +4,10 @@
 use std::{error::Error, rc::Rc, sync::Arc};
 
 use slint::{ModelRc, SharedString, ToSharedString, VecModel};
-use svudko_core::{ApplicationCore, Effect, event::Event};
-use svudko_resolver_exchange::request::ExchangeRequest;
+use svudko_core::{
+    ApplicationCore, Effect,
+    event::{Event, exchange::ExchangeRequestEvent},
+};
 use svudko_resolver_sd::request::ServiceDiscoveryRequest;
 
 slint::include_modules!();
@@ -91,8 +93,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         move |hostname| {
             core.inner()
-                .update(Event::Exchange(ExchangeRequest::Connect(
-                    hostname.to_string(),
+                .update(Event::Exchange(ExchangeRequestEvent::Connect(
+                    hostname.to_string().into(),
                 )));
         }
     });
@@ -114,11 +116,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             core.inner().update(Event::ServiceDiscovery(
                 ServiceDiscoveryRequest::DisableService,
             ));
-
-              core.inner()
-                .update(Event::Exchange(ExchangeRequest::Connect(
-                    "hostname".to_string(),
-                )));
         }
     });
 

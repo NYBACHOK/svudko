@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use sqlx::SqlitePool;
 use svudko_common::{
     APP_DATA_DIR, ASYNC_RUNTIME,
+    hostname::Hostname,
     resolver::{HandlerResolver, Operation},
 };
 
@@ -14,7 +15,12 @@ mod setup;
 
 pub use errors::*;
 
-use crate::{event::StorageEvent, models::TrustedHost, request::StorageRequest, setup::setup_db};
+use crate::{
+    event::StorageEvent,
+    models::{TrustedHost, TrustedHostRaw},
+    request::StorageRequest,
+    setup::setup_db,
+};
 
 const APPLY_MIGRATIONS: bool = true;
 
@@ -75,39 +81,42 @@ impl HandlerResolver for StorageResolver {
 
 impl StorageResolver {
     pub async fn trusted_hosts(&self) -> Result<Vec<TrustedHost>, StorageErrors> {
-        sqlx::query_as("SELECT * FROM trusted_hosts;")
+        sqlx::query_as::<_, TrustedHostRaw>("SELECT * FROM trusted_hosts;")
             .fetch_all(&self.pool)
             .await
+            .map(|this| this.into_iter().map(Into::into).collect())
             .map_err(Into::into)
     }
 
     pub async fn trusted_host_add(
         &self,
-        hostname: &str,
+        hostname: &Hostname,
         signature: &str,
     ) -> Result<Option<TrustedHost>, StorageErrors> {
-        sqlx::query_as::<_, TrustedHost>(
+        sqlx::query_as::<_, TrustedHostRaw>(
             " INSERT OR IGNORE INTO trusted_hosts (hostname, signature) VALUES ($1, $2) RETURNING *;",
         )
-        .bind(hostname)
+        .bind(hostname.as_str())
         .bind(signature)
         .fetch_optional(&self.pool)
         .await
+        .map( | this | this.map(Into::into))
         .map_err(Into::into)
     }
 
     pub async fn trusted_host_overwrite(
         &self,
-        hostname: &str,
+        hostname: &Hostname,
         signature: &str,
     ) -> Result<TrustedHost, StorageErrors> {
-        sqlx::query_as::<_, TrustedHost>(
+        sqlx::query_as::<_, TrustedHostRaw>(
             " INSERT INTO trusted_hosts (hostname, signature) VALUES ($1, $2) ON CONFLICT (hostname) DO UPDATE SET signature = excluded.signature RETURNING *;",
         )
-        .bind(hostname)
+        .bind(hostname.as_str())
         .bind(signature)
         .fetch_one(&self.pool)
         .await
+         .map( Into::into)
         .map_err(Into::into)
     }
 }

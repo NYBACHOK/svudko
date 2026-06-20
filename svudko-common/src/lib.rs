@@ -1,10 +1,13 @@
+pub mod hostname;
 use std::{
     net::{IpAddr, Ipv6Addr, SocketAddr},
     path::PathBuf,
-    sync::{LazyLock, OnceLock},
+    sync::LazyLock,
 };
 
 pub mod resolver;
+
+pub const POISONED_LOCK_MSG: &str = "poisoned lock";
 
 pub static ASYNC_RUNTIME: LazyLock<tokio::runtime::Runtime> =
     LazyLock::new(|| tokio::runtime::Runtime::new().expect("failed to init runtime"));
@@ -46,14 +49,4 @@ fn data_dir() -> PathBuf {
             dir
         })
     }
-}
-
-pub fn hostname() -> &'static str {
-    static HOST_NAME: OnceLock<String> = OnceLock::new();
-
-    HOST_NAME.get_or_init(|| {
-        gethostname::gethostname()
-            .to_string_lossy()
-            .replace(char::REPLACEMENT_CHARACTER, "")
-    })
 }

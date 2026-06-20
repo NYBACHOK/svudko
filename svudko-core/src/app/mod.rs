@@ -9,7 +9,7 @@ use svudko_resolver_storage::{event::StorageEvent, request::StorageRequest};
 
 pub mod effect;
 pub mod event;
-mod model;
+pub(crate) mod model;
 pub mod view_model;
 
 use self::{
@@ -47,8 +47,27 @@ impl App for Application {
         match event {
             Event::Initialize => Command::all([handle_request(StorageRequest::Fetch)]),
             Event::ServiceDiscovery(req) => handle_request(req),
-            Event::Exchange(req) => handle_request(req),
             Event::Storage(req) => handle_request(req),
+            Event::Exchange(req) => match req {
+                event::exchange::ExchangeRequestEvent::Connect(hostname) => {
+                    match model.dns_sd.discovered_services.get(hostname.as_str()) {
+                        Some(service) => handle_request(ExchangeRequest::Connect((
+                            hostname,
+                            service
+                                .addresses
+                                .iter()
+                                .find(|this| this.is_ipv4())
+                                .unwrap()
+                                .to_owned()
+                                .to_ip_addr(),
+                        ))),
+                        None => Command::notify_shell(CoreErrorEffect(
+                            "failed to find such host".to_owned(),
+                        ))
+                        .build(),
+                    }
+                }
+            },
             Event::Core(core_event) => match core_event {
                 CoreEvent::Error(e) => {
                     tracing::error!(err = %e, "error in core");
@@ -65,7 +84,12 @@ impl App for Application {
     fn view(&self, model: &Self::Model) -> Self::ViewModel {
         let view = Self::ViewModel {
             enabled_discover: model.dns_sd.enabled_discover,
-            unknown_signatures: model.unknown_signatures.clone(),
+            unknown_signatures: model
+                .unknown_signatures
+                .clone()
+                .into_iter()
+                .map(|(host, signature)| (host.into(), signature))
+                .collect(),
             discovered_services: model
                 .dns_sd
                 .discovered_services
@@ -86,21 +110,28 @@ fn handle_storage_events(
 ) -> crux_core::Command<Effect, Event> {
     match event {
         StorageEvent::Fetch(trusted_hosts) => {
-            model.trusted_hosts = trusted_hosts
+            model.trusted_signatures = trusted_hosts
                 .into_iter()
-                .map(|this| (this.hostname, this.signature))
+                .map(|this| this.signature)
                 .collect();
 
             model.load_state.hosts = true;
 
-            handle_request(ExchangeRequest::TrustedHosts(model.trusted_hosts.clone()))
-                .then(render())
+            handle_request(ExchangeRequest::TrustedSignatures(
+                model.trusted_signatures.clone(),
+            ))
+            .then(Command::done())
         }
-        StorageEvent::HostAlreadyExists(_) => todo!(), // TODO: handle it later
-        StorageEvent::HostAdded(_) => Command::request_from_shell(StorageRequest::Fetch)
-            .map(Into::into)
-            .then_notify(|event| NotificationBuilder::new(async |ctx| ctx.send_event(event)))
-            .build(),
+        StorageEvent::HostAlreadyExists(host) => {
+            let _ = model.unknown_signatures.remove(&host);
+
+            handle_request(StorageRequest::Fetch).then(render())
+        }
+        StorageEvent::HostAdded(host) => {
+            let _ = model.unknown_signatures.remove(&host.hostname);
+
+            handle_request(StorageRequest::Fetch).then(render())
+        }
     }
 }
 
@@ -132,7 +163,7 @@ fn handle_dns_events(
         ServiceDiscoveryEvent::FoundServices(services) => {
             model.dns_sd.discovered_services = services
         }
-        ServiceDiscoveryEvent::FoundIps(ips) => model.dns_sd.dedicated_search = ips,
+        ServiceDiscoveryEvent::FoundIps(_ips) => todo!(),
     }
 
     render()

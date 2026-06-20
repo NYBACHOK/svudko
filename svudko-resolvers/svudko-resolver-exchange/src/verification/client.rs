@@ -4,8 +4,9 @@ use quinn::rustls::pki_types::{CertificateDer, UnixTime};
 use quinn::rustls::server::danger::{ClientCertVerified, ClientCertVerifier};
 use quinn::rustls::{self, DistinguishedName, OtherError, SignatureScheme};
 use sha2::{Digest, Sha256};
-use std::collections::HashMap;
+use std::collections::HashSet;
 use std::sync::{Arc, RwLock};
+use svudko_common::hostname::Hostname;
 use tokio::sync::mpsc::UnboundedSender;
 use x509_parser::asn1_rs::FromDer;
 use x509_parser::certificate::X509Certificate;
@@ -16,20 +17,20 @@ use crate::models::UnknownSignature;
 #[derive(Debug)]
 pub struct WhiteListClientVerifier {
     provider: Arc<CryptoProvider>,
-    trusted_hosts: Arc<RwLock<HashMap<String, String>>>,
+    trusted_signatures: Arc<RwLock<HashSet<String>>>,
     tx: UnboundedSender<UnknownSignature>,
 }
 
 impl WhiteListClientVerifier {
     pub fn new(
-        trusted_hosts: Arc<RwLock<HashMap<String, String>>>,
+        trusted_signatures: Arc<RwLock<HashSet<String>>>,
         tx: UnboundedSender<UnknownSignature>,
     ) -> Self {
         let provider = Arc::new(rustls::crypto::ring::default_provider());
 
         Self {
             provider,
-            trusted_hosts,
+            trusted_signatures,
             tx,
         }
     }
@@ -51,10 +52,10 @@ impl ClientCertVerifier for WhiteListClientVerifier {
         let signature = data_encoding::HEXLOWER.encode(&hasher.finalize());
 
         let allowed = self
-            .trusted_hosts
+            .trusted_signatures
             .read()
             .expect(POISONED_LOCK)
-            .contains_key(&signature);
+            .contains(&signature);
 
         if allowed {
             return Ok(rustls::server::danger::ClientCertVerified::assertion());
@@ -72,7 +73,7 @@ impl ClientCertVerifier for WhiteListClientVerifier {
             .map_err(|_| rustls::Error::General("Invalid CommonName encoding".into()))?;
 
         let _ = self.tx.send(UnknownSignature {
-            hostname: common_name.to_owned(),
+            hostname: Hostname::new(common_name),
             signature,
         });
 

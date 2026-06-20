@@ -1,5 +1,5 @@
 use std::{
-    collections::HashMap,
+    collections::HashSet,
     net::SocketAddr,
     path::Path,
     sync::{Arc, LazyLock, RwLock},
@@ -14,7 +14,7 @@ use quinn::{
     },
 };
 use rcgen::{Issuer, SanType};
-use svudko_common::{APP_DATA_DIR, CERT_CA_KEY_PEM};
+use svudko_common::{APP_DATA_DIR, CERT_CA_KEY_PEM, hostname::HOSTNAME};
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::{
@@ -29,10 +29,10 @@ static ROOT_CERT: LazyLock<CertificateDer<'static>> = LazyLock::new(|| {
 fn configure_server(
     cert_der: CertificateDer<'static>,
     key_der: PrivateKeyDer<'static>,
-    trusted_hosts: Arc<RwLock<HashMap<String, String>>>,
+    trusted_signatures: Arc<RwLock<HashSet<String>>>,
     tx: UnboundedSender<UnknownSignature>,
 ) -> Result<ServerConfig, ExchangeInitializeErrors> {
-    let tofu = WhiteListClientVerifier::new(trusted_hosts, tx);
+    let tofu = WhiteListClientVerifier::new(trusted_signatures, tx);
 
     let tls_server = rustls::ServerConfig::builder()
         .with_client_cert_verifier(Arc::new(tofu))
@@ -82,7 +82,7 @@ async fn load_or_generate_cert(
     params.distinguished_name = rcgen::DistinguishedName::new();
     params
         .distinguished_name
-        .push(rcgen::DnType::CommonName, svudko_common::hostname());
+        .push(rcgen::DnType::CommonName, HOSTNAME.clone());
     params.subject_alt_names = names;
 
     let key_pair = rcgen::KeyPair::generate()?;
@@ -105,7 +105,7 @@ async fn load_or_generate_cert(
 pub async fn endpoint(
     addr: SocketAddr,
     names: Vec<SanType>,
-    trusted_hosts: Arc<RwLock<HashMap<String, String>>>,
+    trusted_signatures: Arc<RwLock<HashSet<String>>>,
     tx: UnboundedSender<UnknownSignature>,
 ) -> Result<Endpoint, ExchangeInitializeErrors> {
     if !APP_DATA_DIR.exists() {
@@ -119,7 +119,7 @@ pub async fn endpoint(
     let priv_key = PrivateKeyDer::from(keypair);
 
     let client_cfg = configure_client(cert.clone(), priv_key.clone_key())?;
-    let server_cfg = configure_server(cert, priv_key, trusted_hosts, tx)?;
+    let server_cfg = configure_server(cert, priv_key, trusted_signatures, tx)?;
 
     let mut endpoint = Endpoint::server(server_cfg, addr)?;
     endpoint.set_default_client_config(client_cfg);

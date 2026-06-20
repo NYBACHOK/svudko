@@ -6,6 +6,7 @@ use std::{
 use mdns_sd::{HostnameResolutionEvent, ResolvedService, ScopedIp, ServiceDaemon, ServiceInfo};
 use svudko_common::{
     ASYNC_RUNTIME,
+    hostname::HOSTNAME,
     resolver::{HandlerResolver, Operation},
 };
 
@@ -98,12 +99,10 @@ impl SdResolver {
 
         let instance_name = data_encoding::BASE64.encode(uuid::Uuid::new_v4().as_bytes());
 
-        let host_name = format!("_{}.local.", svudko_common::hostname());
-
         let service_info = ServiceInfo::new(
             MDNS_SERVICE_TYPE,
             &instance_name,
-            &host_name,
+            &HOSTNAME.to_local_dns_name(),
             "",
             MDNS_SERVICE_PORT,
             Vec::new(),
@@ -150,7 +149,7 @@ impl SdResolver {
                 while let Ok(event) = rx.recv_async().await {
                     match event {
                         mdns_sd::ServiceEvent::ServiceResolved(service) => {
-                            services.insert(service.fullname.clone(), service);
+                            services.insert(service.host.clone(), service);
                         }
                         mdns_sd::ServiceEvent::ServiceRemoved(_, name) => {
                             services.remove(&name);

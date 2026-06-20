@@ -1,14 +1,14 @@
-use std::collections::HashMap;
+use std::{collections::HashSet, net::IpAddr};
 
-use svudko_common::resolver::Operation;
+use svudko_common::{hostname::Hostname, resolver::Operation};
 
 use crate::event::ExchangeEvent;
 
 #[derive(Clone, Debug)]
 pub enum ExchangeRequest {
-    Connect(String),
+    Connect((Hostname, IpAddr)),
     // Send(String),
-    TrustedHosts(HashMap<String, String>),
+    TrustedSignatures(HashSet<String>),
 }
 
 impl Operation for ExchangeRequest {

@@ -1,5 +1,7 @@
+use svudko_common::hostname::Hostname;
+
 #[derive(Debug, Clone)]
 pub struct UnknownSignature {
-    pub hostname : String,
-    pub signature : String,
+    pub hostname: Hostname,
+    pub signature: String,
 }

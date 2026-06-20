@@ -1,17 +1,19 @@
-use svudko_resolver_exchange::{
-    errors::ExchangeErrors, event::ExchangeEvent, request::ExchangeRequest,
-};
+use svudko_resolver_exchange::{errors::ExchangeErrors, event::ExchangeEvent};
 use svudko_resolver_sd::{
     DnsSdErrors, event::ServiceDiscoveryEvent, request::ServiceDiscoveryRequest,
 };
 use svudko_resolver_storage::{StorageErrors, event::StorageEvent, request::StorageRequest};
+
+use crate::event::exchange::ExchangeRequestEvent;
+
+pub mod exchange;
 
 #[derive(Clone, Debug)]
 pub enum Event {
     Initialize,
     // Shell shared events
     ServiceDiscovery(ServiceDiscoveryRequest),
-    Exchange(ExchangeRequest),
+    Exchange(ExchangeRequestEvent),
     Storage(StorageRequest),
 
     // Core only events
@@ -56,8 +58,8 @@ impl From<StorageEvent> for Event {
     }
 }
 
-impl From<ExchangeRequest> for Event {
-    fn from(value: ExchangeRequest) -> Self {
+impl From<ExchangeRequestEvent> for Event {
+    fn from(value: ExchangeRequestEvent) -> Self {
         Self::Exchange(value)
     }
 }

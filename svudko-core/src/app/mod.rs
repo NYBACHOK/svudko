@@ -50,13 +50,17 @@ impl App for Application {
             Event::Storage(req) => handle_request(req),
             Event::Exchange(req) => match req {
                 event::exchange::ExchangeRequestEvent::Connect(hostname) => {
-                    match model.dns_sd.discovered_services.get(hostname.as_str()) {
+                    match model
+                        .dns_sd
+                        .discovered_services
+                        .get(&hostname.to_local_dns_name())
+                    {
                         Some(service) => handle_request(ExchangeRequest::Connect((
                             hostname,
                             service
                                 .addresses
                                 .iter()
-                                .find(|this| this.is_ipv4())
+                                .find(|this| this.is_ipv4() && !this.is_loopback())
                                 .unwrap()
                                 .to_owned()
                                 .to_ip_addr(),

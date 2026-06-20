@@ -105,7 +105,10 @@ where
                     IpAddr::V6(_ip) => unimplemented!("ipv6 mode"), // SocketAddr::V6(SocketAddrV6::new(ip, SERVER_PORT, 0, 0)), // TODO: find real values
                 };
 
-                let connection = self.endpoint.connect(addr, hostname.as_str())?.await?;
+                let connection = self
+                    .endpoint
+                    .connect(addr, &hostname.to_local_dns_name())?
+                    .await?;
 
                 self.connections
                     .insert(hostname.to_owned().into(), connection);

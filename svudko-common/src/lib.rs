@@ -30,7 +30,11 @@ pub const SERVER_PORT: u16 = 4443;
 pub static APP_DATA_DIR: LazyLock<PathBuf> = LazyLock::new(|| {
     const BUNDLE_ID: &str = "svukdo";
 
-    data_dir().join(BUNDLE_ID)
+    data_dir().join(if cfg!(debug_assertions) {
+        "svukdo/debug"
+    } else {
+        BUNDLE_ID
+    })
 });
 
 #[inline]

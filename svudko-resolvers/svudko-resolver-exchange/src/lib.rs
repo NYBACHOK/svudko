@@ -232,6 +232,10 @@ fn start_handling_incoming(endpoint: Endpoint) {
         tracing::info!("received description");
 
         let download_dir = dirs::download_dir().unwrap_or_default().join("svudko");
+        if !download_dir.exists() {
+            tokio::fs::create_dir(&download_dir).await?;
+        }
+
         for file in files {
             tracing::info!("writing file: {file}");
 

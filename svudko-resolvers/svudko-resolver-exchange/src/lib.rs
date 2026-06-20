@@ -226,8 +226,12 @@ fn start_handling_incoming(endpoint: Endpoint) {
             rkyv::deserialize::<_, rkyv::rancor::Error>(archived)?
         };
 
+        tracing::info!("received description");
+
         let download_dir = dirs::download_dir().unwrap_or_default().join("svudko");
         for file in files {
+            tracing::info!("writing file: {file}");
+
             let mut file = tokio::fs::File::create_new(download_dir.join(file)).await?;
 
             let mut stream = connection.accept_uni().await?;

@@ -214,11 +214,14 @@ fn start_handling_incoming(endpoint: Endpoint) {
 
     async fn handle(incoming: Incoming) -> Result<(), anyhow::Error> {
         let connection = incoming.await?;
+        tracing::info!("opened incoming connection");
 
         let ProtocolDescription { files } = {
             let mut stream = connection.accept_uni().await?;
 
             let msg = stream.read_to_end(usize::MAX).await?;
+
+            tracing::info!("read full description");
 
             let archived =
                 rkyv::access::<rkyv::Archived<ProtocolDescription>, rkyv::rancor::Error>(&msg)?;

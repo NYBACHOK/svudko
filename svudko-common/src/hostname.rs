@@ -1,6 +1,6 @@
 use std::sync::LazyLock;
 
-pub const LOCAL_HOSTNAME_PREFIX: &str = ".local";
+pub const LOCAL_HOSTNAME_PREFIX: &str = ".local.";
 
 pub static HOSTNAME: LazyLock<Hostname> = LazyLock::new(|| {
     Hostname::new(
@@ -40,8 +40,8 @@ impl AsRef<String> for Hostname {
 impl Hostname {
     pub fn new(value: impl Into<String>) -> Self {
         let value = value.into();
-        let value = if value.ends_with(".local") {
-            value.replace(".local", "")
+        let value = if value.ends_with(LOCAL_HOSTNAME_PREFIX) {
+            value.replace(LOCAL_HOSTNAME_PREFIX, "")
         } else {
             value
         };

@@ -1,4 +1,4 @@
-use std::{collections::HashSet, net::IpAddr};
+use std::{collections::HashSet, net::IpAddr, path::PathBuf};
 
 use svudko_common::{hostname::Hostname, resolver::Operation};
 
@@ -7,7 +7,7 @@ use crate::event::ExchangeEvent;
 #[derive(Clone, Debug)]
 pub enum ExchangeRequest {
     Connect((Hostname, IpAddr)),
-    // Send(String),
+    SendFiles((Hostname, Vec<PathBuf>)),
     TrustedSignatures(HashSet<String>),
 }
 

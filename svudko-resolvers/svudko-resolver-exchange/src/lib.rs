@@ -1,19 +1,21 @@
 use std::{
+    char,
     collections::{HashMap, HashSet},
     fmt::Debug,
     marker::PhantomData,
     net::{IpAddr, SocketAddr, SocketAddrV4},
+    path::PathBuf,
     sync::{Arc, RwLock},
 };
 
-use quinn::{Connection, Endpoint, Incoming};
+use quinn::{Connection, Endpoint, Incoming, VarInt};
 use rcgen::SanType;
 use svudko_common::{
     ASYNC_RUNTIME, DEFAULT_SERVER_ADDR, SERVER_PORT,
     hostname::{HOSTNAME, Hostname},
     resolver::{HandlerResolver, Operation},
 };
-use tokio::sync::mpsc::UnboundedReceiver;
+use tokio::{io::AsyncWriteExt, sync::mpsc::UnboundedReceiver};
 
 use crate::{
     errors::ExchangeErrors, event::ExchangeEvent, models::UnknownSignature,
@@ -28,6 +30,12 @@ pub mod request;
 mod verification;
 
 const POISONED_LOCK: &str = "poisoned lock";
+
+#[derive(rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
+
+struct ProtocolDescription {
+    files: Vec<String>,
+}
 
 #[derive(Debug)]
 pub struct ExchangeResolver<T> {
@@ -119,48 +127,69 @@ where
                 *self.trusted_signatures.write().expect(POISONED_LOCK) = trusted_hosts.to_owned();
 
                 Ok(ExchangeEvent::None)
-            } // ExchangeRequest::Send(hostname) => self
-              //     .handle_send(hostname)
-              //     .await
-              //     .map(|()| ExchangeEvent::SendFile)
-              //     .map_err(Into::into),
+            }
+            ExchangeRequest::SendFiles((hostname, files)) => {
+                self.send_files(hostname, files.to_vec());
+
+                Ok(ExchangeEvent::None)
+            }
         }
     }
 }
 
 impl<T> ExchangeResolver<T> {
-    // pub async fn handle_connect(
-    //     &mut self,
-    //     ip: IpAddr,
-    //     hostname: &str,
-    // ) -> Result<(), ExchangeErrors> {
-    //     let addr = match ip {
-    //         IpAddr::V4(ip) => SocketAddr::V4(SocketAddrV4::new(ip, SERVER_PORT)),
-    //         IpAddr::V6(_ip) => unimplemented!("ipv6 mode"), // SocketAddr::V6(SocketAddrV6::new(ip, SERVER_PORT, 0, 0)), // TODO: find real values
-    //     };
+    pub fn send_files(&mut self, hostname: &Hostname, files: Vec<PathBuf>) {
+        let connection = self.connections.remove(hostname).unwrap();
 
-    //     let connection = self.endpoint.connect(addr, "servername")?.await?;
+        ASYNC_RUNTIME.spawn(async move {
+            let _ = handle(connection, files)
+                .await
+                .inspect_err(|e| tracing::error!(err = %e, "during files sending"));
+        });
 
-    //     self.connections.insert(hostname.to_owned(), connection);
+        async fn handle(connection: Connection, files: Vec<PathBuf>) -> Result<(), anyhow::Error> {
+            {
+                let description = ProtocolDescription {
+                    files: files
+                        .iter()
+                        .filter_map(|this| {
+                            this.file_name().map(|this| {
+                                this.to_string_lossy()
+                                    .replace(char::REPLACEMENT_CHARACTER, "")
+                            })
+                        })
+                        .collect(),
+                };
 
-    //     Ok(())
-    // }
+                let desc_buf = rkyv::to_bytes::<rkyv::rancor::Error>(&description)?;
 
-    // pub async fn handle_send(&mut self, hostname: &str) -> Result<(), anyhow::Error> {
-    //     let mut file = tokio::fs::File::open(APP_DATA_DIR.join("to-send-test-image.png")).await?;
+                let mut stream = connection.open_uni().await?;
 
-    //     let connection = self.connections.get(hostname).unwrap();
+                stream.write_all(desc_buf.as_slice()).await?;
 
-    //     let mut stream = connection.open_uni().await?;
+                let _ = stream.finish();
 
-    //     let mut buffer = Vec::new();
+                tracing::info!("wrote description");
+            }
 
-    //     file.read_to_end(&mut buffer).await?;
+            for file_path in files {
+                let mut stream = connection.open_uni().await?;
 
-    //     stream.write_all(&buffer).await?;
+                tracing::info!("writing file: {}", file_path.display());
 
-    //     Ok(())
-    // }
+                let file = tokio::fs::read(file_path).await?;
+
+                stream.write_all(&file).await?;
+
+                let _ = stream.finish();
+                stream.stopped().await?;
+            }
+
+            connection.close(VarInt::from_u32(0), "finish".as_bytes());
+
+            Ok(())
+        }
+    }
 }
 
 fn start_handling_new_signatures<T: Fn(UnknownSignature) + Send + Sync + 'static>(
@@ -184,19 +213,31 @@ fn start_handling_incoming(endpoint: Endpoint) {
     });
 
     async fn handle(incoming: Incoming) -> Result<(), anyhow::Error> {
-        let _connection = incoming.await?;
-        tracing::info!("opened incoming connection");
+        let connection = incoming.await?;
 
-        // let mut stream = connection.accept_uni().await?;
+        let ProtocolDescription { files } = {
+            let mut stream = connection.accept_uni().await?;
 
-        // let mut file =
-        //     tokio::fs::File::create(APP_DATA_DIR.join("received-test-image.png")).await?;
+            let msg = stream.read_to_end(usize::MAX).await?;
 
-        // while let Ok(Some(chunk)) = stream.read_chunk(MAX_CHUNK_LENGTH, true).await {
-        //     let _ = file.write(&chunk.bytes).await;
-        // }
+            let archived =
+                rkyv::access::<rkyv::Archived<ProtocolDescription>, rkyv::rancor::Error>(&msg)?;
 
-        // file.sync_all().await?;
+            rkyv::deserialize::<_, rkyv::rancor::Error>(archived)?
+        };
+
+        let download_dir = dirs::download_dir().unwrap_or_default().join("svudko");
+        for file in files {
+            let mut file = tokio::fs::File::create_new(download_dir.join(file)).await?;
+
+            let mut stream = connection.accept_uni().await?;
+
+            let buf = stream.read_to_end(usize::MAX).await?;
+
+            file.write_all(&buf).await?;
+        }
+
+        let _res = connection.closed().await;
 
         Ok(())
     }

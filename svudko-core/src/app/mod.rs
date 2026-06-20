@@ -12,6 +12,8 @@ pub mod event;
 pub(crate) mod model;
 pub mod view_model;
 
+use crate::event::exchange::ExchangeRequestEvent;
+
 use self::{
     effect::{CoreErrorEffect, Effect},
     event::{CoreEvent, Event},
@@ -49,7 +51,7 @@ impl App for Application {
             Event::ServiceDiscovery(req) => handle_request(req),
             Event::Storage(req) => handle_request(req),
             Event::Exchange(req) => match req {
-                event::exchange::ExchangeRequestEvent::Connect(hostname) => {
+                ExchangeRequestEvent::Connect(hostname) => {
                     match model
                         .dns_sd
                         .discovered_services
@@ -70,6 +72,9 @@ impl App for Application {
                         ))
                         .build(),
                     }
+                }
+                ExchangeRequestEvent::SendFiles(files ) => {
+                    handle_request(ExchangeRequest::SendFiles(files))
                 }
             },
             Event::AllowHost((hostname, signature)) => handle_request(StorageRequest::NewHost {

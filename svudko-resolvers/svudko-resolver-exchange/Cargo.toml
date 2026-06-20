@@ -18,4 +18,6 @@ anyhow.workspace = true
 quinn.workspace = true 
 data-encoding.workspace = true 
 sha2.workspace = true
+rkyv.workspace = true
+dirs.workspace = true
 

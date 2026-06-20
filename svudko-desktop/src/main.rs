@@ -1,7 +1,7 @@
 // Prevent console window in addition to Slint window in Windows release builds when, e.g., starting the app via file manager. Ignored on other platforms.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{error::Error, rc::Rc, sync::Arc};
+use std::{error::Error, path::PathBuf, rc::Rc, sync::Arc};
 
 use slint::{ModelRc, SharedString, ToSharedString, VecModel};
 use svudko_core::{
@@ -130,16 +130,30 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     });
 
-    // app.on_send_debug_file({
-    //     let core = Arc::clone(&core);
+    app.on_select_files({
+        let core = Arc::clone(&core);
 
-    //     move |hostname| {
-    //         core.inner()
-    //             .update(Event::Exchange(ExchangeRequest::SendFile(
-    //                 hostname.to_string(),
-    //             )));
-    //     }
-    // });
+        move |hostname| {
+            let _ = slint::spawn_local({
+                let core = Arc::clone(&core);
+
+                async move {
+                    let dialog = rfd::AsyncFileDialog::new()
+                        .set_directory(dirs::home_dir().expect("always valid"))
+                        .pick_files()
+                        .await;
+
+                    if let Some(files) = dialog {
+                        core.inner()
+                            .update(Event::Exchange(ExchangeRequestEvent::SendFiles((
+                                hostname.to_string().into(),
+                                files.into_iter().map(PathBuf::from).collect(),
+                            ))));
+                    }
+                }
+            });
+        }
+    });
 
     core.inner().update(Event::Initialize);
     app.run()?;

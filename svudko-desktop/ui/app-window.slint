@@ -6,8 +6,8 @@ import {
 } from "std-widgets.slint";
 
 struct PendingHost {
-    name : string,
-    signature : string,
+    name: string,
+    signature: string,
 }
 
 struct ViewModel {
@@ -25,7 +25,7 @@ export component AppWindow inherits Window {
 
     callback start_scan();
     callback connect_to_host(string);
-    callback send_debug_file(string);
+    callback select_files(string);
 
     callback allow_host(PendingHost);
 
@@ -43,7 +43,7 @@ export component AppWindow inherits Window {
 
             ListView {
                 for host[i] in model.discovered_hosts: HorizontalBox {
-                   
+
                     Text {
                         text: host;
                         vertical-alignment: center;
@@ -58,9 +58,9 @@ export component AppWindow inherits Window {
                     }
 
                     Button {
-                        text: "Send Debug File";
+                        text: "Select Files";
                         clicked => {
-                            root.send_debug_file(host)
+                            select_files(host)
                         }
                     }
                 }
@@ -75,7 +75,6 @@ export component AppWindow inherits Window {
 
             ListView {
                 for host[i] in model.pending_hosts: HorizontalBox {
-                 
 
                     Text {
                         text: host.name;

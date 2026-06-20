@@ -72,6 +72,11 @@ impl App for Application {
                     }
                 }
             },
+            Event::AllowHost((hostname, signature)) => handle_request(StorageRequest::NewHost {
+                hostname,
+                signature,
+                overwrite: false,
+            }),
             Event::Core(core_event) => match core_event {
                 CoreEvent::Error(e) => {
                     tracing::error!(err = %e, "error in core");

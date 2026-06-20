@@ -56,11 +56,8 @@ impl HandlerResolver for StorageResolver {
         let event = match op {
             StorageRequest::Fetch => StorageEvent::Fetch(self.trusted_hosts().await?),
             StorageRequest::NewHost {
-                host:
-                    TrustedHost {
-                        hostname,
-                        signature,
-                    },
+                hostname,
+                signature,
                 overwrite,
             } => {
                 if *overwrite {

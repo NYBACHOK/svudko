@@ -119,6 +119,17 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     });
 
+    app.on_allow_host({
+        let core = Arc::clone(&core);
+
+        move |host| {
+            core.inner().update(Event::AllowHost((
+                host.name.to_string().into(),
+                host.signature.to_string(),
+            )));
+        }
+    });
+
     // app.on_send_debug_file({
     //     let core = Arc::clone(&core);
 

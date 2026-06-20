@@ -1,3 +1,4 @@
+use svudko_common::hostname::Hostname;
 use svudko_resolver_exchange::{errors::ExchangeErrors, event::ExchangeEvent};
 use svudko_resolver_sd::{
     DnsSdErrors, event::ServiceDiscoveryEvent, request::ServiceDiscoveryRequest,
@@ -15,6 +16,7 @@ pub enum Event {
     ServiceDiscovery(ServiceDiscoveryRequest),
     Exchange(ExchangeRequestEvent),
     Storage(StorageRequest),
+    AllowHost((Hostname, String)),
 
     // Core only events
     Core(CoreEvent),

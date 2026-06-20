@@ -1,11 +1,15 @@
-use svudko_common::resolver::Operation;
+use svudko_common::{hostname::Hostname, resolver::Operation};
 
-use crate::{event::StorageEvent, models::TrustedHost};
+use crate::event::StorageEvent;
 
 #[derive(Debug, Clone)]
 pub enum StorageRequest {
     Fetch,
-    NewHost { host: TrustedHost, overwrite: bool },
+    NewHost {
+        hostname: Hostname,
+        signature: String,
+        overwrite: bool,
+    },
 }
 
 impl Operation for StorageRequest {

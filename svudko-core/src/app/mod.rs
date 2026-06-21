@@ -7,12 +7,10 @@ use svudko_resolver_exchange::{
 use svudko_resolver_sd::event::ServiceDiscoveryEvent;
 use svudko_resolver_storage::{event::StorageEvent, request::StorageRequest};
 
-pub mod effect;
-pub mod event;
-pub(crate) mod model;
-pub mod view_model;
-
-use crate::event::exchange::ExchangeRequestEvent;
+use crate::{
+    app::logic::{exchange, handle_request, sd, storage},
+    event::exchange::ExchangeRequestEvent,
+};
 
 use self::{
     effect::{CoreErrorEffect, Effect},
@@ -21,16 +19,11 @@ use self::{
     view_model::ViewModel,
 };
 
-fn handle_request<T: Operation>(req: T) -> crux_core::Command<Effect, Event>
-where
-    Effect: From<crux_core::Request<T>>,
-    Event: From<<T as Operation>::Output>,
-{
-    Command::request_from_shell(req)
-        .map(Into::into)
-        .then_notify(|event| NotificationBuilder::new(async |ctx| ctx.send_event(event)))
-        .build()
-}
+pub mod effect;
+pub mod event;
+mod logic;
+pub(crate) mod model;
+pub mod view_model;
 
 #[derive(Default)]
 pub struct Application;
@@ -73,7 +66,7 @@ impl App for Application {
                         .build(),
                     }
                 }
-                ExchangeRequestEvent::SendFiles(files ) => {
+                ExchangeRequestEvent::SendFiles(files) => {
                     handle_request(ExchangeRequest::SendFiles(files))
                 }
             },
@@ -88,9 +81,9 @@ impl App for Application {
 
                     Command::notify_shell(CoreErrorEffect(e)).build()
                 }
-                CoreEvent::DnsReponses(res) => handle_dns_events(res, model),
-                CoreEvent::Exchange(event) => handle_quick_events(event, model),
-                CoreEvent::Storage(event) => handle_storage_events(event, model),
+                CoreEvent::DnsReponses(res) => sd::handle(res, model),
+                CoreEvent::Exchange(event) => exchange::handle(event, model),
+                CoreEvent::Storage(event) => storage::handle(event, model),
             },
         }
     }
@@ -116,69 +109,4 @@ impl App for Application {
 
         view
     }
-}
-
-fn handle_storage_events(
-    event: StorageEvent,
-    model: &mut Model,
-) -> crux_core::Command<Effect, Event> {
-    match event {
-        StorageEvent::Fetch(trusted_hosts) => {
-            model.trusted_signatures = trusted_hosts
-                .into_iter()
-                .map(|this| this.signature)
-                .collect();
-
-            model.load_state.hosts = true;
-
-            handle_request(ExchangeRequest::TrustedSignatures(
-                model.trusted_signatures.clone(),
-            ))
-            .then(Command::done())
-        }
-        StorageEvent::HostAlreadyExists(host) => {
-            let _ = model.unknown_signatures.remove(&host);
-
-            handle_request(StorageRequest::Fetch).then(render())
-        }
-        StorageEvent::HostAdded(host) => {
-            let _ = model.unknown_signatures.remove(&host.hostname);
-
-            handle_request(StorageRequest::Fetch).then(render())
-        }
-    }
-}
-
-fn handle_quick_events(
-    event: ExchangeEvent,
-    model: &mut Model,
-) -> crux_core::Command<Effect, Event> {
-    match event {
-        ExchangeEvent::None => Command::done(),
-        ExchangeEvent::UnknownSignature(UnknownSignature {
-            hostname,
-            signature,
-        }) => {
-            model.unknown_signatures.insert(hostname, signature);
-            render()
-        }
-    }
-}
-
-fn handle_dns_events(
-    event: ServiceDiscoveryEvent,
-    model: &mut Model,
-) -> crux_core::Command<Effect, Event> {
-    tracing::debug!(method = "handle_dns_events", event = ?event);
-
-    match event {
-        ServiceDiscoveryEvent::Enabled => model.dns_sd.enabled_discover = true,
-        ServiceDiscoveryEvent::Disabled => model.dns_sd.enabled_discover = false,
-        ServiceDiscoveryEvent::FoundServices(services) => {
-            model.dns_sd.discovered_services = services
-        }
-        ServiceDiscoveryEvent::FoundIps(_ips) => todo!(),
-    }
-
-    render()
 }

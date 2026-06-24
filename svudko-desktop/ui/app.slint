@@ -1,0 +1,36 @@
+import { Theme } from "theme.slint";
+import { Icons } from "icons.slint";
+import { MainPanel } from "panels/main.slint";
+import { Home } from "pages/home.slint";
+
+struct PendingHost {
+    name: string,
+    signature: string,
+}
+
+struct ViewModel {
+    enabled_discover: bool,
+    discovered_hosts: [string],
+    pending_hosts: [PendingHost],
+}
+
+export component AppWindow inherits Window {
+    in-out property <ViewModel> model;
+    in-out property <string> error_msg: "";
+
+    title: "Svudko";
+
+    preferred-width: Theme.default-width;
+    preferred-height: Theme.default-height;
+    default-font-size: Theme.default-font-size;
+    default-font-weight: Theme.normal-font-weight;
+    default-font-family: Theme.default-font-family;
+    background: Theme.base-background;
+    icon: Icons.app;
+
+    HorizontalLayout {
+        MainPanel { }
+
+        Home { }
+    }
+}

@@ -1,0 +1,35 @@
+import { ListView, HorizontalBox, Button } from "std-widgets.slint";
+import { Logic } from "../logic.slint";
+import { Theme } from "../theme.slint";
+
+export component Home inherits Rectangle {
+    in-out property <[string]> discovered_hosts;
+
+    background: Theme.secondary-background;
+
+    ListView {
+        for host[i] in discovered_hosts: HorizontalBox {
+
+            Text {
+                text: host;
+                vertical-alignment: center;
+                color: #ddc4c4;
+            }
+
+            Button {
+                text: "Connect";
+                clicked => {
+
+                    Logic.connect_to_host(host);
+                }
+            }
+
+            Button {
+                text: "Select Files";
+                clicked => {
+                    Logic.select_files(host)
+                }
+            }
+        }
+    }
+}

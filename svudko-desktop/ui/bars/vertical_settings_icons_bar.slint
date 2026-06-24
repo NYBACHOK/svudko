@@ -1,0 +1,70 @@
+import { ComponentPosition } from "../components/mod.slint";
+import { IconBtn } from "../components/icon_button.slint";
+import { Divider } from "../components/divider.slint";
+import { Theme } from "../theme.slint";
+import { Icons } from "../icons.slint";
+import { Util } from "../components/utils.slint";
+import { Logic } from "../logic.slint";
+
+export component VerticalSettingIconsBar inherits Rectangle {
+    width: vbox.preferred-width;
+    height: vbox.preferred-height;
+    border-radius: Theme.border-radius;
+
+    in-out property <bool> show-icon-hover-background: false;
+    in-out property <length> icon-size: Theme.icon-size;
+    in-out property <bool> is-show-tip: false;
+    in-out property <ComponentPosition> tip-position;
+    in-out property <length> v-padding-bottom;
+    in-out property v-padding <=> vbox.padding;
+    in-out property v-spacing <=> vbox.spacing;
+    
+    vbox := VerticalLayout {
+        padding: Theme.padding * 2;
+        padding-bottom: root.v-padding-bottom;
+
+        VerticalLayout {
+            spacing: Theme.spacing * 2;
+
+            HorizontalLayout {
+                alignment: center;
+
+                Divider {
+                    width: Theme.default-font-size;
+                    height: 2px;
+                }
+            }
+        }
+
+        VerticalLayout {
+            spacing: Theme.spacing * 4;
+            padding-top: Theme.padding * 2;
+
+            IconBtn {
+                icon: Icons.settings;
+                icon-size: root.icon-size;
+                show-icon-hover-background: root.show-icon-hover-background;
+                is-show-tip: root.is-show-tip;
+                tip-position: root.tip-position;
+                tip: "Settings";
+
+                clicked => {
+                   Logic.open_settings();
+                }
+            }
+ 
+            IconBtn {
+                icon: Icons.github;
+                icon-size: root.icon-size;
+                show-icon-hover-background: root.show-icon-hover-background;
+                is-show-tip: root.is-show-tip;
+                tip-position: root.tip-position;
+                tip: "github";
+
+                clicked => {
+                    Util.open-url("Default", "https://github.com/NYBACHOK/svudko");
+                }
+            }
+        }
+    }
+}

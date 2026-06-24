@@ -1,0 +1,23 @@
+export enum TabIndex {
+    Home,
+}
+
+export enum PopupIndex {
+    None,
+    Setting,
+}
+
+
+export global Logic {
+    in-out property <TabIndex> current-tab-index: TabIndex.Home;
+ 
+    callback open_settings();
+    callback connect_to_host(string);
+    callback select_files(string);
+
+    public function switch-tab(index: TabIndex) {
+        if (Logic.current-tab-index != index) {
+            Logic.current-tab-index = index;
+        }
+    }
+}

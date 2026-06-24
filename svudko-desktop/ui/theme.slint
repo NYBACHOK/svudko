@@ -1,0 +1,65 @@
+import { Settings } from "./settings.slint";
+
+export global Theme {
+    out property <bool> is-dark: Settings.is_dark;
+
+    in-out property <length> default-width: 600px;
+    in-out property <length> default-height: 400px;
+
+    // General
+    out property <color> disabled-color: is-dark ? #555555 : #AAAAAA;
+    out property <length> padding: Math.max(4px, Math.round(default-font-size / 4px) * 1px);
+    out property <length> spacing: padding;
+    out property <length> border-radius: padding;
+    out property <duration> default-animate-duration: 200ms;
+    out property <color> divider-color: is-dark ? #3B3B3B : #DCDCDC;
+    out property <length> sidebar-width: header-height * 1.5;
+    out property <length> header-height: Math.max(32px, icon-size + padding * 2);
+
+    // Icons
+    out property <length> icon-size: Math.max(24px, default-font-size + 8px);
+    out property <color> icon-color: is-dark ? #AAAAAA : #515151;
+
+    // Background
+    in-out property <color> base-background: is-dark ? #FFFFFF : #16161A;
+    out property <color> secondary-background: is-dark ? #232429 : #F5F5F5;
+    out property <color> thirdly-brand-color: is-dark ? #4B60D8 : #5E79ff;
+
+    // TEXT
+    out property <color> light-text-color: is-dark ? #EEEEEE : #FFFFFF;
+    out property <color> dark-text-color: is-dark ? #000000 : #000000;
+    out property <color> primary-text-color: is-dark ? #969696 : #222222;
+    out property <color> secondary-text-color: is-dark ? #555555 : #333333;
+
+    out property <color> regular-text-color: is-dark ? #666666 : #282828;
+
+    in-out property <int> normal-font-weight: 400;
+    in-out property <int> bold-font-weight: 700;
+
+    in-out property <string> default-font-family;
+    in-out property <length> default-font-size: Settings.font-size * 1px;
+
+    // Title
+    in-out property <length> title6-font-size: default-font-size + 0px;
+    in-out property <length> title5-font-size: default-font-size + 1px;
+    in-out property <length> title4-font-size: default-font-size + 2px;
+    in-out property <length> title3-font-size: default-font-size + 4px;
+    in-out property <length> title2-font-size: default-font-size + 6px;
+    in-out property <length> title1-font-size: default-font-size + 8px;
+
+    public pure function title-font-size(level: int) -> length {
+        if (level == 1) {
+            return title1-font-size;
+        } else if (level == 2) {
+            return title2-font-size;
+        } else if (level == 3) {
+            return title3-font-size;
+        } else if (level == 4) {
+            return title4-font-size;
+        } else if (level == 5) {
+            return title5-font-size;
+        } else {
+            return title6-font-size;
+        }
+    }
+}

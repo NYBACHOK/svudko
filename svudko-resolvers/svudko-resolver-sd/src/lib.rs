@@ -108,7 +108,11 @@ where
 
                 Ok(ServiceDiscoveryEvent::AppearedService(service))
             }
-            ServiceDiscoveryRequest::BeginBrowseForServices => todo!(),
+            ServiceDiscoveryRequest::BeginBrowseForServices => {
+                self.begin_browse().await?;
+
+                Ok(ServiceDiscoveryEvent::None)
+            }
             ServiceDiscoveryRequest::StopBrowseForServices => {
                 self.stop_browse().await?;
 

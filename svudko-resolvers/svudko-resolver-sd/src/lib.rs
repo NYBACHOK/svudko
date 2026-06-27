@@ -179,9 +179,13 @@ where
             async move {
                 while let Ok(event) = rx.recv_async().await {
                     match event {
-                        mdns_sd::ServiceEvent::ServiceResolved(service) => (callback)(
-                            ServiceDiscoveryEvent::AppearedService(LocalService::from(*service)),
-                        ),
+                        mdns_sd::ServiceEvent::ServiceResolved(service) => {
+                            if service.ty_domain == MDNS_SERVICE_TYPE {
+                                (callback)(ServiceDiscoveryEvent::AppearedService(
+                                    LocalService::from(*service),
+                                ))
+                            }
+                        }
                         mdns_sd::ServiceEvent::ServiceRemoved(_, name) => {
                             (callback)(ServiceDiscoveryEvent::LostService(name));
                         }

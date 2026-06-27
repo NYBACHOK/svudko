@@ -44,7 +44,7 @@ impl From<mdns_sd::ScopedIp> for ScopedIp {
                 addr: *addr.addr(),
                 interface_ids: addr
                     .interface_ids()
-                    .into_iter()
+                    .iter()
                     .cloned()
                     .map(InterfaceId::from)
                     .collect(),
@@ -59,6 +59,7 @@ impl From<mdns_sd::ScopedIp> for ScopedIp {
 }
 
 impl ScopedIp {
+    #[must_use]
     pub const fn is_loopback(&self) -> bool {
         match self {
             ScopedIp::V4(v4) => v4.addr.is_loopback(),
@@ -66,6 +67,7 @@ impl ScopedIp {
         }
     }
 
+    #[must_use]
     pub const fn to_ip_addr(&self) -> IpAddr {
         match self {
             ScopedIp::V4(v4) => IpAddr::V4(v4.addr),
@@ -73,10 +75,12 @@ impl ScopedIp {
         }
     }
 
+    #[must_use]
     pub const fn is_ipv4(&self) -> bool {
         matches!(self, ScopedIp::V4(_))
     }
 
+    #[must_use]
     pub const fn is_ipv6(&self) -> bool {
         matches!(self, ScopedIp::V6(_))
     }

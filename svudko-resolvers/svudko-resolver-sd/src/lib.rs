@@ -179,7 +179,7 @@ where
                             ServiceDiscoveryEvent::AppearedService(LocalService::from(*service)),
                         ),
                         mdns_sd::ServiceEvent::ServiceRemoved(_, name) => {
-                            (callback)(ServiceDiscoveryEvent::LostService(name))
+                            (callback)(ServiceDiscoveryEvent::LostService(name));
                         }
                         _ => (),
                     }

@@ -44,10 +44,12 @@ impl Hostname {
         Self(value)
     }
 
+    #[must_use]
     pub fn to_local_dns_name(&self) -> String {
         format!("{}{LOCAL_HOSTNAME_PREFIX}", self.0)
     }
 
+    #[must_use]
     pub fn as_str(&self) -> &str {
         &self.0
     }

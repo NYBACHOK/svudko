@@ -61,7 +61,7 @@ impl ClientCertVerifier for WhiteListClientVerifier {
             return Ok(rustls::server::danger::ClientCertVerified::assertion());
         }
 
-        let (_, certificate) = X509Certificate::from_der(&end_entity)
+        let (_, certificate) = X509Certificate::from_der(end_entity)
             .map_err(|e| rustls::Error::Other(OtherError(Arc::new(e))))?;
 
         let common_name = certificate

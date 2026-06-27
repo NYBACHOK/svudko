@@ -1,4 +1,4 @@
-use super::*;
+use super::{Command, Effect, Event, Model, ServiceDiscoveryEvent, render};
 
 pub fn handle(
     event: ServiceDiscoveryEvent,
@@ -18,14 +18,16 @@ pub fn handle(
                 .insert(service.hostname.clone(), service);
         }
         ServiceDiscoveryEvent::LostService(fullname) => {
-            let key =
-                model
-                    .discovered_services
-                    .iter()
-                    .find_map(|(hostname, service)| match service.fullname == fullname {
-                        true => Some(hostname.clone()),
-                        false => None,
-                    });
+            let key = model
+                .discovered_services
+                .iter()
+                .find_map(|(hostname, service)| {
+                    if service.fullname == fullname {
+                        Some(hostname.clone())
+                    } else {
+                        None
+                    }
+                });
 
             if let Some(key) = key {
                 let _ = model.discovered_services.remove(&key);

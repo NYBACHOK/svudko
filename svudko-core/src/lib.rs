@@ -98,7 +98,7 @@ impl ApplicationCore {
         let router = EffectRouter::new(crux_core::Core::new(), move |routes: EffectRoutes| {
             move |effect| match effect {
                 RustCoreEffect::Core(CoreEffect::ServiceDiscovery(request)) => {
-                    routes.dns.process(request)
+                    routes.dns.process(request);
                 }
                 RustCoreEffect::Core(CoreEffect::Connection(request)) => {
                     routes.connection.process(request);

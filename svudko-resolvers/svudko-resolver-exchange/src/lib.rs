@@ -118,8 +118,7 @@ where
                     .connect(addr, &hostname.to_local_dns_name())?
                     .await?;
 
-                self.connections
-                    .insert(hostname.to_owned().into(), connection);
+                self.connections.insert(hostname.to_owned(), connection);
 
                 Ok(ExchangeEvent::None)
             }
@@ -129,7 +128,7 @@ where
                 Ok(ExchangeEvent::None)
             }
             ExchangeRequest::SendFiles((hostname, files)) => {
-                self.send_files(hostname, files.to_vec());
+                self.send_files(hostname, files.clone());
 
                 Ok(ExchangeEvent::None)
             }
@@ -198,7 +197,7 @@ fn start_handling_new_signatures<T: Fn(UnknownSignature) + Send + Sync + 'static
 ) {
     ASYNC_RUNTIME.spawn(async move {
         while let Some(msg) = rx.recv().await {
-            callback(msg)
+            callback(msg);
         }
     });
 }

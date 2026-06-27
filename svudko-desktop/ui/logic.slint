@@ -7,10 +7,15 @@ export enum PopupIndex {
     Setting,
 }
 
+export struct ViewModel {
+    discovered_hosts: [string],
+}
 
 export global Logic {
     in-out property <TabIndex> current-tab-index: TabIndex.Home;
- 
+    in-out property <ViewModel> model;
+    in-out property <string> error_msg: "";
+
     callback open_settings();
     callback connect_to_host(string);
     callback select_files(string);

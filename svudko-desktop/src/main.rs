@@ -1,13 +1,10 @@
 // Prevent console window in addition to Slint window in Windows release builds when, e.g., starting the app via file manager. Ignored on other platforms.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{error::Error, path::PathBuf, rc::Rc, sync::Arc};
+use std::{error::Error, rc::Rc, sync::Arc};
 
 use slint::{ModelRc, SharedString, ToSharedString, VecModel};
-use svudko_core::{
-    ApplicationCore, Effect,
-    event::{Event, exchange::ExchangeRequestEvent},
-};
+use svudko_core::{ApplicationCore, Effect, event::Event};
 
 slint::include_modules!();
 
@@ -19,7 +16,7 @@ impl From<svudko_core::view_model::ViewModel> for ViewModel {
     fn from(
         svudko_core::view_model::ViewModel {
             discovered_services,
-            unknown_signatures,
+            unknown_signatures: _,
         }: svudko_core::view_model::ViewModel,
     ) -> Self {
         Self {
@@ -27,15 +24,6 @@ impl From<svudko_core::view_model::ViewModel> for ViewModel {
                 discovered_services
                     .into_iter()
                     .map(SharedString::from)
-                    .collect::<VecModel<_>>(),
-            )),
-            pending_hosts: ModelRc::new(Rc::new(
-                unknown_signatures
-                    .into_iter()
-                    .map(|(name, signature)| PendingHost {
-                        name: name.to_shared_string(),
-                        signature: signature.to_shared_string(),
-                    })
                     .collect::<VecModel<_>>(),
             )),
         }
@@ -54,7 +42,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         app: app.as_weak(),
     })));
 
-    app.set_model(core.inner().view().into());
+    app.global::<Logic<'_>>()
+        .set_model(core.inner().view().into());
 
     let _ = slint::spawn_local({
         let app = app.clone_strong();
@@ -64,63 +53,44 @@ fn main() -> Result<(), Box<dyn Error>> {
             while let Ok(effect) = rx.recv().await {
                 match effect {
                     Effect::Render(_) => {
-                        app.set_model(core.inner().view().into());
+                        app.global::<Logic<'_>>()
+                            .set_model(core.inner().view().into());
                     }
                     Effect::Error(e) => {
-                        app.set_model(core.inner().view().into());
-                        app.set_error_msg(e.to_shared_string());
+                        app.global::<Logic<'_>>()
+                            .set_model(core.inner().view().into());
+                        app.global::<Logic<'_>>()
+                            .set_error_msg(e.to_shared_string());
                     }
                 }
             }
         }
     })?;
 
-    app.on_connect_to_host({
-        let core = Arc::clone(&core);
+    // app.on_select_files({
+    //     let core = Arc::clone(&core);
 
-        move |hostname| {
-            core.inner()
-                .update(Event::Exchange(ExchangeRequestEvent::Connect(
-                    hostname.to_string().into(),
-                )));
-        }
-    });
+    //     move |hostname| {
+    //         let _ = slint::spawn_local({
+    //             let core = Arc::clone(&core);
 
-    app.on_allow_host({
-        let core = Arc::clone(&core);
+    //             async move {
+    //                 let dialog = rfd::AsyncFileDialog::new()
+    //                     .set_directory(dirs::home_dir().expect("always valid"))
+    //                     .pick_files()
+    //                     .await;
 
-        move |host| {
-            core.inner().update(Event::AllowHost((
-                host.name.to_string().into(),
-                host.signature.to_string(),
-            )));
-        }
-    });
-
-    app.on_select_files({
-        let core = Arc::clone(&core);
-
-        move |hostname| {
-            let _ = slint::spawn_local({
-                let core = Arc::clone(&core);
-
-                async move {
-                    let dialog = rfd::AsyncFileDialog::new()
-                        .set_directory(dirs::home_dir().expect("always valid"))
-                        .pick_files()
-                        .await;
-
-                    if let Some(files) = dialog {
-                        core.inner()
-                            .update(Event::Exchange(ExchangeRequestEvent::SendFiles((
-                                hostname.to_string().into(),
-                                files.into_iter().map(PathBuf::from).collect(),
-                            ))));
-                    }
-                }
-            });
-        }
-    });
+    //                 if let Some(files) = dialog {
+    //                     core.inner()
+    //                         .update(Event::Exchange(ExchangeRequestEvent::SendFiles((
+    //                             hostname.to_string().into(),
+    //                             files.into_iter().map(PathBuf::from).collect(),
+    //                         ))));
+    //                 }
+    //             }
+    //         });
+    //     }
+    // });
 
     core.inner().update(Event::Initialize);
     app.run()?;

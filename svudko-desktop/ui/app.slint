@@ -3,20 +3,9 @@ import { Icons } from "icons.slint";
 import { MainPanel } from "panels/main.slint";
 import { Home } from "pages/home.slint";
 
-struct PendingHost {
-    name: string,
-    signature: string,
-}
-
-struct ViewModel {
-    discovered_hosts: [string],
-    pending_hosts: [PendingHost],
-}
+import { ViewModel, Logic } from "./logic.slint";
 
 export component AppWindow inherits Window {
-    in-out property <ViewModel> model;
-    in-out property <string> error_msg: "";
-
     title: "Svudko";
 
     preferred-width: Theme.default-width;
@@ -33,3 +22,5 @@ export component AppWindow inherits Window {
         Home { }
     }
 }
+
+export { Logic }

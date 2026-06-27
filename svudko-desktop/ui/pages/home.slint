@@ -1,34 +1,52 @@
 import { ListView, HorizontalBox, Button } from "std-widgets.slint";
 import { Logic } from "../logic.slint";
 import { Theme } from "../theme.slint";
+import { NoDataImg } from "../components/no_data.slint";
+import { CenterLayout } from "../components/center_layout.slint";
+import { IconBtn } from "../components/icon_button.slint";
+import { Icons } from "../icons.slint";
+import { Divider } from "../components/divider.slint";
 
 export component Home inherits Rectangle {
-    in-out property <[string]> discovered_hosts;
+    in-out property <[string]> discovered_hosts <=> Logic.model.discovered-hosts;
 
     background: Theme.secondary-background;
 
+    if discovered_hosts.length == 0: NoDataImg {
+        text: "No hosts found";
+    }
+
     ListView {
-        for host[i] in discovered_hosts: HorizontalBox {
 
-            Text {
-                text: host;
-                vertical-alignment: center;
-                color: #ddc4c4;
-            }
+        for host[i] in discovered_hosts: CenterLayout {
 
-            Button {
-                text: "Connect";
-                clicked => {
+            HorizontalLayout {
+                padding: Theme.padding;
+                Text {
 
-                    Logic.connect_to_host(host);
+                    text: host;
+                    vertical-alignment: center;
+                    color: Theme.primary-text-color;
+                }
+
+                IconBtn {
+                    text: "Select Files";
+                    text-color: Theme.secondary-text-color;
+
+                    icon: Icons.send_files;
+                    border-color: Theme.dark-text-color;
+                    border-radius: Theme.border-radius;
+
+                    bg-color: Theme.thirdly-brand-color;
+
+                    clicked => {
+                        Logic.select_files(host)
+                    }
                 }
             }
 
-            Button {
-                text: "Select Files";
-                clicked => {
-                    Logic.select_files(host)
-                }
+            Divider {
+                width: 95%;
             }
         }
     }

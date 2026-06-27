@@ -8,7 +8,7 @@ use svudko_common::resolver::HandlerResolver;
 use svudko_resolver_exchange::{
     ExchangeResolver, ExchangeResolverOptions, event::ExchangeEvent, request::ExchangeRequest,
 };
-use svudko_resolver_sd::{SdResolver, request::ServiceDiscoveryRequest};
+use svudko_resolver_sd::{SdResolver, SdResolverOptions, request::ServiceDiscoveryRequest};
 
 mod app;
 mod handler;
@@ -54,7 +54,20 @@ pub struct EffectRoutes {
 impl Routes<Application> for EffectRoutes {
     fn new(router: std::sync::Weak<EffectRouter<Application, Self>>) -> Self {
         Self {
-            dns: Arc::new(Handler::new(Weak::clone(&router), SdResolver::new(()))),
+            dns: Arc::new(Handler::new(
+                Weak::clone(&router),
+                SdResolver::new(SdResolverOptions {
+                    service_events_callback: {
+                        let router = Weak::clone(&router);
+                        Arc::new(move |event| {
+                            if let Some(router) = router.upgrade() {
+                                router
+                                    .update(Event::Core(event::CoreEvent::ServiceDiscovery(event)));
+                            }
+                        })
+                    },
+                }),
+            )),
             connection: Arc::new(Handler::new(
                 Weak::clone(&router),
                 ExchangeResolver::new(ExchangeResolverOptions {

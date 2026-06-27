@@ -4,7 +4,7 @@ use crux_core::{
 use svudko_resolver_exchange::{
     event::ExchangeEvent, models::UnknownSignature, request::ExchangeRequest,
 };
-use svudko_resolver_sd::event::ServiceDiscoveryEvent;
+use svudko_resolver_sd::{event::ServiceDiscoveryEvent, request::ServiceDiscoveryRequest};
 use svudko_resolver_storage::{event::StorageEvent, request::StorageRequest};
 
 use crate::{
@@ -40,16 +40,17 @@ impl App for Application {
         model: &mut Self::Model,
     ) -> crux_core::Command<Self::Effect, Self::Event> {
         match event {
-            Event::Initialize => Command::all([handle_request(StorageRequest::Fetch)]),
-            Event::ServiceDiscovery(req) => handle_request(req),
+            Event::Initialize => Command::all([
+                handle_request(StorageRequest::Fetch),
+                handle_request(ServiceDiscoveryRequest::EnableService(
+                    model.session_id.uuid(),
+                )),
+                handle_request(ServiceDiscoveryRequest::BeginBrowseForServices),
+            ]),
             Event::Storage(req) => handle_request(req),
             Event::Exchange(req) => match req {
                 ExchangeRequestEvent::Connect(hostname) => {
-                    match model
-                        .dns_sd
-                        .discovered_services
-                        .get(&hostname.to_local_dns_name())
-                    {
+                    match model.discovered_services.get(&hostname) {
                         Some(service) => handle_request(ExchangeRequest::Connect((
                             hostname,
                             service
@@ -81,7 +82,7 @@ impl App for Application {
 
                     Command::notify_shell(CoreErrorEffect(e)).build()
                 }
-                CoreEvent::DnsReponses(res) => sd::handle(res, model),
+                CoreEvent::ServiceDiscovery(res) => sd::handle(res, model),
                 CoreEvent::Exchange(event) => exchange::handle(event, model),
                 CoreEvent::Storage(event) => storage::handle(event, model),
             },
@@ -90,7 +91,6 @@ impl App for Application {
 
     fn view(&self, model: &Self::Model) -> Self::ViewModel {
         let view = Self::ViewModel {
-            enabled_discover: model.dns_sd.enabled_discover,
             unknown_signatures: model
                 .unknown_signatures
                 .clone()
@@ -98,10 +98,10 @@ impl App for Application {
                 .map(|(host, signature)| (host.into(), signature))
                 .collect(),
             discovered_services: model
-                .dns_sd
                 .discovered_services
                 .keys()
                 .map(ToOwned::to_owned)
+                .map(Into::into)
                 .collect(),
         };
 

@@ -11,7 +11,6 @@ struct PendingHost {
 }
 
 struct ViewModel {
-    enabled_discover: bool,
     discovered_hosts: [string],
     pending_hosts: [PendingHost],
 }
@@ -92,11 +91,7 @@ export component AppWindow inherits Window {
             }
         }
 
-        HorizontalBox {
-            if (model.enabled-discover): Text {
-                text: "Made this PC available in Network";
-            }
-        }
+        HorizontalBox {}
 
         HorizontalBox {
             VerticalBox {

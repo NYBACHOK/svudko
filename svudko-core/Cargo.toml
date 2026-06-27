@@ -15,12 +15,16 @@ required-features = ["codegen"]
 tracing.workspace = true
 thiserror.workspace = true
 # serde.workspace = true
-tokio = { workspace = true, features = ["full"] }
-dirs = "6"
+tokio = { workspace = true, features = ["full"] } # TODO: select only needed features
 anyhow.workspace = true
-mdns-sd.workspace = true
 
 crux_core.workspace = true
+
+# utils
+data-encoding.workspace = true
+
+# types
+uuid.workspace = true
 
 # local
 svudko-common.workspace = true

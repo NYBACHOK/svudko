@@ -7,12 +7,30 @@ pub fn handle(
     tracing::debug!(method = "handle_dns_events", event = ?event);
 
     match event {
-        ServiceDiscoveryEvent::Enabled => model.dns_sd.enabled_discover = true,
-        ServiceDiscoveryEvent::Disabled => model.dns_sd.enabled_discover = false,
-        ServiceDiscoveryEvent::FoundServices(services) => {
-            model.dns_sd.discovered_services = services
+        ServiceDiscoveryEvent::None => return Command::done(),
+        ServiceDiscoveryEvent::AppearedService(service) => {
+            if service.fullname.contains(model.session_id.base64_repr()) {
+                return Command::done();
+            }
+
+            model
+                .discovered_services
+                .insert(service.hostname.clone(), service);
         }
-        ServiceDiscoveryEvent::FoundIps(_ips) => todo!(),
+        ServiceDiscoveryEvent::LostService(fullname) => {
+            let key =
+                model
+                    .discovered_services
+                    .iter()
+                    .find_map(|(hostname, service)| match service.fullname == fullname {
+                        true => Some(hostname.clone()),
+                        false => None,
+                    });
+
+            if let Some(key) = key {
+                let _ = model.discovered_services.remove(&key);
+            }
+        }
     }
 
     render()

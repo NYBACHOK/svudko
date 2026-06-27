@@ -6068,9 +6068,8 @@ dependencies = [
  "boltffi",
  "clap",
  "crux_core",
- "dirs",
+ "data-encoding",
  "log",
- "mdns-sd",
  "pretty_env_logger",
  "svudko-common",
  "svudko-resolver-exchange",
@@ -6079,6 +6078,7 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tracing",
+ "uuid",
 ]
 
 [[package]]

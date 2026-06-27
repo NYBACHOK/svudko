@@ -8,7 +8,6 @@ use svudko_core::{
     ApplicationCore, Effect,
     event::{Event, exchange::ExchangeRequestEvent},
 };
-use svudko_resolver_sd::request::ServiceDiscoveryRequest;
 
 slint::include_modules!();
 
@@ -19,13 +18,11 @@ use self::shell::SlintShell;
 impl From<svudko_core::view_model::ViewModel> for ViewModel {
     fn from(
         svudko_core::view_model::ViewModel {
-            enabled_discover,
             discovered_services,
             unknown_signatures,
         }: svudko_core::view_model::ViewModel,
     ) -> Self {
         Self {
-            enabled_discover,
             discovered_hosts: ModelRc::new(Rc::new(
                 discovered_services
                     .into_iter()
@@ -78,16 +75,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     })?;
 
-    app.on_start_scan({
-        let core = Arc::clone(&core);
-
-        move || {
-            core.inner().update(Event::ServiceDiscovery(
-                ServiceDiscoveryRequest::BrowseForServices,
-            ));
-        }
-    });
-
     app.on_connect_to_host({
         let core = Arc::clone(&core);
 
@@ -96,26 +83,6 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .update(Event::Exchange(ExchangeRequestEvent::Connect(
                     hostname.to_string().into(),
                 )));
-        }
-    });
-
-    app.on_enable_discover({
-        let core = Arc::clone(&core);
-
-        move || {
-            core.inner().update(Event::ServiceDiscovery(
-                ServiceDiscoveryRequest::EnableService,
-            ));
-        }
-    });
-
-    app.on_disable_discover({
-        let core = Arc::clone(&core);
-
-        move || {
-            core.inner().update(Event::ServiceDiscovery(
-                ServiceDiscoveryRequest::DisableService,
-            ));
         }
     });
 

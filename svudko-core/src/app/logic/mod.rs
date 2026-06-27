@@ -4,6 +4,7 @@ pub mod exchange;
 pub mod sd;
 pub mod storage;
 
+/// Helper method to redirect request to rust "shell"
 pub(super) fn handle_request<T: Operation>(req: T) -> crux_core::Command<Effect, Event>
 where
     Effect: From<crux_core::Request<T>>,

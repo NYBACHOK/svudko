@@ -1,13 +1,14 @@
-use svudko_common::resolver::Operation;
+use svudko_common::{hostname::Hostname, resolver::Operation};
 
 use crate::event::ServiceDiscoveryEvent;
 
 #[derive(Clone, Debug)]
 pub enum ServiceDiscoveryRequest {
-    EnableService,
+    EnableService(uuid::Uuid),
     DisableService,
-    BrowseForServices,
-    FindByHostname(String),
+    BeginBrowseForServices,
+    StopBrowseForServices,
+    FindByHostname(Hostname),
 }
 
 impl Operation for ServiceDiscoveryRequest {

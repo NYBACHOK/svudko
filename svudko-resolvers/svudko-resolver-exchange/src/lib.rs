@@ -8,31 +8,28 @@ use std::{
     sync::{Arc, RwLock},
 };
 
-use quinn::{Connection, Endpoint, Incoming, VarInt};
+use quinn::{Connection, Endpoint, VarInt};
 use rcgen::SanType;
 use svudko_common::{
-    ASYNC_RUNTIME, DEFAULT_SERVER_ADDR, SERVER_PORT,
+    ASYNC_RUNTIME, DEFAULT_SERVER_ADDR, POISONED_LOCK_MSG, SERVER_PORT,
     hostname::{HOSTNAME, Hostname},
     resolver::{HandlerResolver, Operation},
 };
-use tokio::{io::AsyncWriteExt, sync::mpsc::UnboundedReceiver};
 
 use crate::{
-    errors::ExchangeErrors, event::ExchangeEvent, models::UnknownSignature,
-    request::ExchangeRequest,
+    errors::ExchangeErrors, event::ExchangeEvent, models::ClientId,
+    protocol::server::start_handling_incoming, request::ExchangeRequest,
 };
 
 mod endpoint;
 pub mod errors;
 pub mod event;
 pub mod models;
+mod protocol;
 pub mod request;
 mod verification;
 
-const POISONED_LOCK: &str = "poisoned lock";
-
 #[derive(rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
-
 struct ProtocolDescription {
     files: Vec<String>,
 }
@@ -42,12 +39,12 @@ pub struct ExchangeResolver<T> {
     endpoint: Endpoint,
     _phantom: PhantomData<T>,
     connections: HashMap<Hostname, Connection>,
-    trusted_signatures: Arc<RwLock<HashSet<String>>>,
+    paired_devices: Arc<RwLock<HashSet<String>>>,
     // incoming_connections: Arc<Mutex<HashMap<String, (Connection, RecvStream)>>>,
 }
 
 pub struct ExchangeResolverOptions<T> {
-    pub new_signatures_callback: T,
+    pub pairing_request: T,
     // pub server_name: String,
 }
 
@@ -57,9 +54,10 @@ impl<T> Debug for ExchangeResolverOptions<T> {
     }
 }
 
-impl<T> HandlerResolver for ExchangeResolver<T>
+impl<T, U> HandlerResolver for ExchangeResolver<T>
 where
-    T: Fn(UnknownSignature) + Send + Sync + 'static,
+    T: Fn(ClientId) -> U + Send + Sync + 'static,
+    U: Future<Output = bool> + Send + Sync + 'static,
 {
     type Opt = ExchangeResolverOptions<T>;
 
@@ -67,19 +65,13 @@ where
 
     type Err = ExchangeErrors;
 
-    fn new(
-        ExchangeResolverOptions {
-            new_signatures_callback,
-        }: Self::Opt,
-    ) -> Result<Self, Self::Err>
+    fn new(ExchangeResolverOptions { pairing_request }: Self::Opt) -> Result<Self, Self::Err>
     where
         Self: Sized,
     {
-        let trusted_signatures = Default::default();
+        let paired_devices = Default::default();
 
-        let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
-
-        let endpoint = ASYNC_RUNTIME.block_on(crate::endpoint::endpoint(
+        let endpoint = crate::endpoint::endpoint(
             DEFAULT_SERVER_ADDR,
             vec![SanType::DnsName(
                 HOSTNAME
@@ -87,17 +79,18 @@ where
                     .try_into()
                     .expect("should be valid hostname"),
             )],
-            Arc::clone(&trusted_signatures),
-            tx,
-        ))?;
+        )?;
 
-        start_handling_new_signatures(rx, new_signatures_callback);
-        start_handling_incoming(endpoint.clone());
+        start_handling_incoming(
+            endpoint.clone(),
+            Arc::clone(&paired_devices),
+            Arc::new(pairing_request),
+        );
 
         Ok(Self {
             endpoint,
             connections: Default::default(),
-            trusted_signatures,
+            paired_devices,
             _phantom: PhantomData,
         })
     }
@@ -122,8 +115,8 @@ where
 
                 Ok(ExchangeEvent::None)
             }
-            ExchangeRequest::TrustedSignatures(trusted_hosts) => {
-                *self.trusted_signatures.write().expect(POISONED_LOCK) = trusted_hosts.to_owned();
+            ExchangeRequest::PairedDevices(trusted_hosts) => {
+                *self.paired_devices.write().expect(POISONED_LOCK_MSG) = trusted_hosts.to_owned();
 
                 Ok(ExchangeEvent::None)
             }
@@ -188,67 +181,5 @@ impl<T> ExchangeResolver<T> {
 
             Ok(())
         }
-    }
-}
-
-fn start_handling_new_signatures<T: Fn(UnknownSignature) + Send + Sync + 'static>(
-    mut rx: UnboundedReceiver<UnknownSignature>,
-    callback: T,
-) {
-    ASYNC_RUNTIME.spawn(async move {
-        while let Some(msg) = rx.recv().await {
-            callback(msg);
-        }
-    });
-}
-
-fn start_handling_incoming(endpoint: Endpoint) {
-    ASYNC_RUNTIME.spawn(async move {
-        while let Some(accept) = endpoint.accept().await {
-            let _ = handle(accept)
-                .await
-                .inspect_err(|e| tracing::error!(err = ?e));
-        }
-    });
-
-    async fn handle(incoming: Incoming) -> Result<(), anyhow::Error> {
-        let connection = incoming.await?;
-        tracing::info!("opened incoming connection");
-
-        let ProtocolDescription { files } = {
-            let mut stream = connection.accept_uni().await?;
-
-            let msg = stream.read_to_end(usize::MAX).await?;
-
-            tracing::info!("read full description");
-
-            let archived =
-                rkyv::access::<rkyv::Archived<ProtocolDescription>, rkyv::rancor::Error>(&msg)?;
-
-            rkyv::deserialize::<_, rkyv::rancor::Error>(archived)?
-        };
-
-        tracing::info!("received description");
-
-        let download_dir = dirs::download_dir().unwrap_or_default().join("svudko");
-        if !download_dir.exists() {
-            tokio::fs::create_dir(&download_dir).await?;
-        }
-
-        for file in files {
-            tracing::info!("writing file: {file}");
-
-            let mut file = tokio::fs::File::create_new(download_dir.join(file)).await?;
-
-            let mut stream = connection.accept_uni().await?;
-
-            let buf = stream.read_to_end(usize::MAX).await?;
-
-            file.write_all(&buf).await?;
-        }
-
-        let _res = connection.closed().await;
-
-        Ok(())
     }
 }

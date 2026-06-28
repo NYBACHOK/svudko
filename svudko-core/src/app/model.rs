@@ -3,19 +3,19 @@ use std::collections::HashMap;
 use svudko_common::hostname::Hostname;
 use svudko_resolver_sd::models::LocalService;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Default)]
 pub struct Model {
     pub session_id: SessionId,
     pub load_state: LoadState,
     pub paired_devices: HashMap<Hostname, String>,
-    pub unknown_signatures: HashMap<Hostname, String>,
     pub discovered_services: HashMap<Hostname, LocalService>,
+    pub pairing_requests: HashMap<Hostname, (String, tokio::sync::oneshot::Sender<bool>)>,
 }
 
 /// Flags to track resources loaded during first start
 #[derive(Debug, Clone, Default)]
 pub struct LoadState {
-    pub hosts: bool,
+    pub paired_devices: bool,
 }
 
 #[derive(Debug, Clone)]

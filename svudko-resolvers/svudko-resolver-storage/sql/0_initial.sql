@@ -1,4 +1,4 @@
-create table trusted_hosts(
+create table paired_devices(
     hostname text primary key not null,
-    signature text not null
+    identifier text not null
 );

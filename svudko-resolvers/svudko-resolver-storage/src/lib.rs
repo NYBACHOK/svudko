@@ -17,7 +17,7 @@ pub use errors::*;
 
 use crate::{
     event::StorageEvent,
-    models::{TrustedHost, TrustedHostRaw},
+    models::{PairedDevice, PairedDeviceRaw},
     request::StorageRequest,
     setup::setup_db,
 };
@@ -57,16 +57,16 @@ impl HandlerResolver for StorageResolver {
             StorageRequest::Fetch => StorageEvent::Fetch(self.trusted_hosts().await?),
             StorageRequest::NewHost {
                 hostname,
-                signature,
+                identifier,
                 overwrite,
             } => {
                 if *overwrite {
-                    let host = self.trusted_host_overwrite(hostname, signature).await?;
-                    StorageEvent::HostAdded(host)
+                    let host = self.trusted_host_overwrite(hostname, identifier).await?;
+                    StorageEvent::DeviceAdded(host)
                 } else {
-                    match self.trusted_host_add(hostname, signature).await? {
-                        Some(host) => StorageEvent::HostAdded(host),
-                        None => StorageEvent::HostAlreadyExists(hostname.to_owned()),
+                    match self.trusted_host_add(hostname, identifier).await? {
+                        Some(host) => StorageEvent::DeviceAdded(host),
+                        None => StorageEvent::DeviceAlreadyExists(hostname.to_owned()),
                     }
                 }
             }
@@ -77,8 +77,8 @@ impl HandlerResolver for StorageResolver {
 }
 
 impl StorageResolver {
-    pub async fn trusted_hosts(&self) -> Result<Vec<TrustedHost>, StorageErrors> {
-        sqlx::query_as::<_, TrustedHostRaw>("SELECT * FROM trusted_hosts;")
+    pub async fn trusted_hosts(&self) -> Result<Vec<PairedDevice>, StorageErrors> {
+        sqlx::query_as::<_, PairedDeviceRaw>("SELECT * FROM paired_devices;")
             .fetch_all(&self.pool)
             .await
             .map(|this| this.into_iter().map(Into::into).collect())
@@ -88,13 +88,13 @@ impl StorageResolver {
     pub async fn trusted_host_add(
         &self,
         hostname: &Hostname,
-        signature: &str,
-    ) -> Result<Option<TrustedHost>, StorageErrors> {
-        sqlx::query_as::<_, TrustedHostRaw>(
-            " INSERT OR IGNORE INTO trusted_hosts (hostname, signature) VALUES ($1, $2) RETURNING *;",
+        identifier: &str,
+    ) -> Result<Option<PairedDevice>, StorageErrors> {
+        sqlx::query_as::<_, PairedDeviceRaw>(
+            " INSERT OR IGNORE INTO paired_devices (hostname, identifier) VALUES ($1, $2) RETURNING *;",
         )
         .bind(hostname.as_str())
-        .bind(signature)
+        .bind(identifier)
         .fetch_optional(&self.pool)
         .await
         .map( | this | this.map(Into::into))
@@ -104,16 +104,16 @@ impl StorageResolver {
     pub async fn trusted_host_overwrite(
         &self,
         hostname: &Hostname,
-        signature: &str,
-    ) -> Result<TrustedHost, StorageErrors> {
-        sqlx::query_as::<_, TrustedHostRaw>(
-            " INSERT INTO trusted_hosts (hostname, signature) VALUES ($1, $2) ON CONFLICT (hostname) DO UPDATE SET signature = excluded.signature RETURNING *;",
+        identifier: &str,
+    ) -> Result<PairedDevice, StorageErrors> {
+        sqlx::query_as::<_, PairedDeviceRaw>(
+            " INSERT INTO paired_devices (hostname, identifier) VALUES ($1, $2) ON CONFLICT (hostname) DO UPDATE SET identifier = excluded.identifier RETURNING *;",
         )
         .bind(hostname.as_str())
-        .bind(signature)
+        .bind(identifier)
         .fetch_one(&self.pool)
         .await
-         .map( Into::into)
+        .map(Into::into)
         .map_err(Into::into)
     }
 }

@@ -6,25 +6,25 @@ use quinn::rustls::{self, DistinguishedName, OtherError, SignatureScheme};
 use sha2::{Digest, Sha256};
 use std::collections::HashSet;
 use std::sync::{Arc, RwLock};
+use svudko_common::POISONED_LOCK_MSG;
 use svudko_common::hostname::Hostname;
 use tokio::sync::mpsc::UnboundedSender;
 use x509_parser::asn1_rs::FromDer;
 use x509_parser::certificate::X509Certificate;
 
-use crate::POISONED_LOCK;
-use crate::models::UnknownSignature;
+use crate::models::ClientId;
 
 #[derive(Debug)]
 pub struct WhiteListClientVerifier {
     provider: Arc<CryptoProvider>,
     trusted_signatures: Arc<RwLock<HashSet<String>>>,
-    tx: UnboundedSender<UnknownSignature>,
+    tx: UnboundedSender<ClientId>,
 }
 
 impl WhiteListClientVerifier {
     pub fn new(
         trusted_signatures: Arc<RwLock<HashSet<String>>>,
-        tx: UnboundedSender<UnknownSignature>,
+        tx: UnboundedSender<ClientId>,
     ) -> Self {
         let provider = Arc::new(rustls::crypto::ring::default_provider());
 
@@ -54,7 +54,7 @@ impl ClientCertVerifier for WhiteListClientVerifier {
         let allowed = self
             .trusted_signatures
             .read()
-            .expect(POISONED_LOCK)
+            .expect(POISONED_LOCK_MSG)
             .contains(&signature);
 
         if allowed {
@@ -72,9 +72,9 @@ impl ClientCertVerifier for WhiteListClientVerifier {
             .as_str()
             .map_err(|_| rustls::Error::General("Invalid CommonName encoding".into()))?;
 
-        let _ = self.tx.send(UnknownSignature {
+        let _ = self.tx.send(ClientId {
             hostname: Hostname::new(common_name),
-            signature,
+            id: signature,
         });
 
         Err(rustls::Error::General(

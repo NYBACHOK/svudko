@@ -7,7 +7,7 @@ pub enum StorageRequest {
     Fetch,
     NewHost {
         hostname: Hostname,
-        signature: String,
+        identifier: String,
         overwrite: bool,
     },
 }

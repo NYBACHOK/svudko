@@ -2,27 +2,27 @@ use sqlx::prelude::FromRow;
 use svudko_common::hostname::Hostname;
 
 #[derive(Debug, Clone)]
-pub struct TrustedHost {
+pub struct PairedDevice {
     pub hostname: Hostname,
-    pub signature: String,
+    pub identifier: String,
 }
 
 #[derive(Debug, Clone, FromRow)]
-pub struct TrustedHostRaw {
+pub struct PairedDeviceRaw {
     pub hostname: String,
-    pub signature: String,
+    pub identifier: String,
 }
 
-impl From<TrustedHostRaw> for TrustedHost {
+impl From<PairedDeviceRaw> for PairedDevice {
     fn from(
-        TrustedHostRaw {
+        PairedDeviceRaw {
             hostname,
-            signature,
-        }: TrustedHostRaw,
+            identifier,
+        }: PairedDeviceRaw,
     ) -> Self {
         Self {
             hostname: Hostname::new(hostname),
-            signature,
+            identifier,
         }
     }
 }

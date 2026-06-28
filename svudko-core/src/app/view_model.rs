@@ -1,11 +1,11 @@
-use std::collections::HashMap;
+use std::collections::HashSet;
 
 use svudko_common::hostname::Hostname;
 
 #[derive(Debug)]
 pub struct ViewModel {
     pub discovered_services: Vec<LocalDevices>,
-    pub unknown_signatures: HashMap<String, String>,
+    pub pairing_requests: HashSet<Hostname>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

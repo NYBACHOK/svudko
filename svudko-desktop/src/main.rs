@@ -16,7 +16,7 @@ impl From<svudko_core::view_model::ViewModel> for ViewModel {
     fn from(
         svudko_core::view_model::ViewModel {
             discovered_services,
-            unknown_signatures: _,
+            pairing_requests,
         }: svudko_core::view_model::ViewModel,
     ) -> Self {
         Self {
@@ -55,8 +55,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         app: app.as_weak(),
     })));
 
-    app.global::<Logic<'_>>()
-        .set_model(core.inner().view().into());
+    app.global::<Logic<'_>>().set_model(core.view().into());
 
     let _ = slint::spawn_local({
         let app = app.clone_strong();
@@ -66,12 +65,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             while let Ok(effect) = rx.recv().await {
                 match effect {
                     Effect::Render(_) => {
-                        app.global::<Logic<'_>>()
-                            .set_model(core.inner().view().into());
+                        app.global::<Logic<'_>>().set_model(core.view().into());
                     }
                     Effect::Error(e) => {
-                        app.global::<Logic<'_>>()
-                            .set_model(core.inner().view().into());
+                        app.global::<Logic<'_>>().set_model(core.view().into());
                         app.global::<Logic<'_>>()
                             .set_error_msg(e.to_shared_string());
                     }
@@ -105,7 +102,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     //     }
     // });
 
-    core.inner().update(Event::Initialize);
+    core.update(Event::Initialize);
     app.run()?;
 
     Ok(())

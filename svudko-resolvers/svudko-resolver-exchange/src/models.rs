@@ -1,7 +1,22 @@
 use svudko_common::hostname::Hostname;
 
 #[derive(Debug, Clone)]
-pub struct UnknownSignature {
+pub struct ClientId {
     pub hostname: Hostname,
-    pub signature: String,
+    pub id: String,
+}
+
+#[derive(rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
+pub(crate) struct ClientIdRaw {
+    pub hostname: String,
+    pub id: String,
+}
+
+impl From<ClientIdRaw> for ClientId {
+    fn from(ClientIdRaw { hostname, id }: ClientIdRaw) -> Self {
+        Self {
+            hostname: Hostname::new(hostname),
+            id,
+        }
+    }
 }

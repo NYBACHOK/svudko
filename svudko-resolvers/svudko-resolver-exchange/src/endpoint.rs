@@ -1,8 +1,7 @@
 use std::{
-    collections::HashSet,
     net::SocketAddr,
     path::Path,
-    sync::{Arc, LazyLock, RwLock},
+    sync::{Arc, LazyLock},
 };
 
 use quinn::{
@@ -15,12 +14,8 @@ use quinn::{
 };
 use rcgen::{Issuer, SanType};
 use svudko_common::{APP_DATA_DIR, CERT_CA_KEY_PEM, hostname::HOSTNAME};
-use tokio::sync::mpsc::UnboundedSender;
 
-use crate::{
-    errors::ExchangeInitializeErrors, models::UnknownSignature,
-    verification::client::WhiteListClientVerifier,
-};
+use crate::errors::ExchangeInitializeErrors;
 
 static ROOT_CERT: LazyLock<CertificateDer<'static>> = LazyLock::new(|| {
     CertificateDer::from_pem_slice(svudko_common::CERT_CA_PEM.as_bytes()).expect("alway valid")
@@ -29,13 +24,9 @@ static ROOT_CERT: LazyLock<CertificateDer<'static>> = LazyLock::new(|| {
 fn configure_server(
     cert_der: CertificateDer<'static>,
     key_der: PrivateKeyDer<'static>,
-    trusted_signatures: Arc<RwLock<HashSet<String>>>,
-    tx: UnboundedSender<UnknownSignature>,
 ) -> Result<ServerConfig, ExchangeInitializeErrors> {
-    let tofu = WhiteListClientVerifier::new(trusted_signatures, tx);
-
     let tls_server = rustls::ServerConfig::builder()
-        .with_client_cert_verifier(Arc::new(tofu))
+        .with_no_client_auth()
         .with_single_cert(vec![cert_der], key_der)?;
 
     let quic_crypto = QuicServerConfig::try_from(tls_server)?;
@@ -65,7 +56,7 @@ fn configure_client(
     )?)))
 }
 
-async fn load_or_generate_cert(
+fn load_or_generate_cert(
     cert_file: &Path,
     key_file: &Path,
     names: Vec<SanType>,
@@ -96,30 +87,28 @@ async fn load_or_generate_cert(
         .expect("always valid"),
     )?;
 
-    tokio::fs::write(cert_file, cert.pem()).await?;
-    tokio::fs::write(key_file, key_pair.serialize_pem()).await?;
+    std::fs::write(cert_file, cert.pem())?;
+    std::fs::write(key_file, key_pair.serialize_pem())?;
 
     Ok((cert.into(), key_pair))
 }
 
-pub async fn endpoint(
+pub fn endpoint(
     addr: SocketAddr,
     names: Vec<SanType>,
-    trusted_signatures: Arc<RwLock<HashSet<String>>>,
-    tx: UnboundedSender<UnknownSignature>,
 ) -> Result<Endpoint, ExchangeInitializeErrors> {
     if !APP_DATA_DIR.exists() {
-        tokio::fs::create_dir_all(&*APP_DATA_DIR).await?;
+        std::fs::create_dir_all(&*APP_DATA_DIR)?;
     }
 
     let cert_file = APP_DATA_DIR.join("certificate.pem");
     let key_file = APP_DATA_DIR.join("private_key.pem");
-    let (cert, keypair) = load_or_generate_cert(&cert_file, &key_file, names).await?;
+    let (cert, keypair) = load_or_generate_cert(&cert_file, &key_file, names)?;
 
     let priv_key = PrivateKeyDer::from(keypair);
 
     let client_cfg = configure_client(cert.clone(), priv_key.clone_key())?;
-    let server_cfg = configure_server(cert, priv_key, trusted_signatures, tx)?;
+    let server_cfg = configure_server(cert, priv_key)?;
 
     let mut endpoint = Endpoint::server(server_cfg, addr)?;
     endpoint.set_default_client_config(client_cfg);

@@ -1,9 +1,7 @@
 use crux_core::{
     App, Command, capability::Operation, command::NotificationBuilder, render::render,
 };
-use svudko_resolver_exchange::{
-    event::ExchangeEvent, models::UnknownSignature, request::ExchangeRequest,
-};
+use svudko_resolver_exchange::{event::ExchangeEvent, models::ClientId, request::ExchangeRequest};
 use svudko_resolver_sd::{event::ServiceDiscoveryEvent, request::ServiceDiscoveryRequest};
 use svudko_resolver_storage::{event::StorageEvent, request::StorageRequest};
 
@@ -27,7 +25,7 @@ pub(crate) mod model;
 pub mod view_model;
 
 #[derive(Default)]
-pub struct Application;
+pub(crate) struct Application;
 
 impl App for Application {
     type Event = Event;
@@ -72,11 +70,24 @@ impl App for Application {
                     handle_request(ExchangeRequest::SendFiles(files))
                 }
             },
-            Event::AllowHost((hostname, signature)) => handle_request(StorageRequest::NewHost {
-                hostname,
-                signature,
-                overwrite: false,
-            }),
+
+            Event::Pair((hostname, is_paired)) => match model.pairing_requests.remove(&hostname) {
+                Some((identifier, tx)) => {
+                    let _ = tx.send(is_paired);
+
+                    if is_paired {
+                        handle_request(StorageRequest::NewHost {
+                            hostname,
+                            identifier,
+                            overwrite: true,
+                        })
+                        .then(render())
+                    } else {
+                        render()
+                    }
+                }
+                None => render(),
+            },
             Event::Core(core_event) => match core_event {
                 CoreEvent::Error(e) => {
                     tracing::error!(err = %e, "error in core");
@@ -92,12 +103,6 @@ impl App for Application {
 
     fn view(&self, model: &Self::Model) -> Self::ViewModel {
         let view = Self::ViewModel {
-            unknown_signatures: model
-                .unknown_signatures
-                .clone()
-                .into_iter()
-                .map(|(host, signature)| (host.into(), signature))
-                .collect(),
             discovered_services: model
                 .discovered_services
                 .keys()
@@ -106,6 +111,11 @@ impl App for Application {
                     paired: model.paired_devices.get(&hostname).is_some(),
                     hostname,
                 })
+                .collect(),
+            pairing_requests: model
+                .pairing_requests
+                .iter()
+                .map(|(this, _)| this.to_owned())
                 .collect(),
         };
 

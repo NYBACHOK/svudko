@@ -18,7 +18,7 @@ pub use crux_core::App;
 use svudko_resolver_storage::{StorageResolver, request::StorageRequest};
 
 use crate::{
-    app::{effect::CoreEffect, event::Event},
+    app::{effect::CoreEffect, event::Event, view_model::ViewModel},
     handler::Handler,
 };
 
@@ -71,15 +71,19 @@ impl Routes<Application> for EffectRoutes {
             connection: Arc::new(Handler::new(
                 Weak::clone(&router),
                 ExchangeResolver::new(ExchangeResolverOptions {
-                    new_signatures_callback: {
+                    pairing_request: {
                         let router = Weak::clone(&router);
 
                         move |msg| {
+                            let (tx, rx) = tokio::sync::oneshot::channel();
+
                             if let Some(router) = router.upgrade() {
                                 router.update(Event::Core(event::CoreEvent::Exchange(
-                                    ExchangeEvent::UnknownSignature(msg),
+                                    ExchangeEvent::PairingRequest((msg, tx)),
                                 )));
                             }
+
+                            async move { rx.await.ok().unwrap_or_default() }
                         }
                     },
                 }),
@@ -111,8 +115,11 @@ impl ApplicationCore {
         Self { router }
     }
 
-    #[must_use]
-    pub fn inner(&self) -> &EffectRouter<Application, EffectRoutes> {
-        &self.router
+    pub fn view(&self) -> ViewModel {
+        self.router.view()
+    }
+
+    pub fn update(&self, event: Event) {
+        self.router.update(event);
     }
 }

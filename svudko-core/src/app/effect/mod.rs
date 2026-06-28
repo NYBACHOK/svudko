@@ -8,7 +8,7 @@ mod error;
 pub use self::error::*;
 
 #[derive(Debug)]
-pub enum Effect {
+pub(crate) enum Effect {
     Render(Request<RenderOperation>),
     Error(Request<CoreErrorEffect>),
     Core(CoreEffect),

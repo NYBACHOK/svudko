@@ -1,9 +1,9 @@
-use crate::models::UnknownSignature;
+use crate::models::ClientId;
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub enum ExchangeEvent {
     None,
-    UnknownSignature(UnknownSignature),
+    PairingRequest((ClientId, tokio::sync::oneshot::Sender<bool>)),
     // Connected(String),
     // SendFile,
 }

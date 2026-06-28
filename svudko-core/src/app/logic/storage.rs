@@ -8,25 +8,19 @@ pub fn handle(event: StorageEvent, model: &mut Model) -> crux_core::Command<Effe
         StorageEvent::Fetch(trusted_hosts) => {
             model.paired_devices = trusted_hosts
                 .into_iter()
-                .map(|this| (this.hostname, this.signature))
+                .map(|this| (this.hostname, this.identifier))
                 .collect();
 
-            model.load_state.hosts = true;
+            model.load_state.paired_devices = true;
 
-            handle_request(ExchangeRequest::TrustedSignatures(
+            handle_request(ExchangeRequest::PairedDevices(
                 model.paired_devices.values().cloned().collect(),
             ))
             .then(Command::done())
         }
-        StorageEvent::HostAlreadyExists(host) => {
-            let _ = model.unknown_signatures.remove(&host);
-
+        StorageEvent::DeviceAlreadyExists(_) => {
             handle_request(StorageRequest::Fetch).then(render())
         }
-        StorageEvent::HostAdded(host) => {
-            let _ = model.unknown_signatures.remove(&host.hostname);
-
-            handle_request(StorageRequest::Fetch).then(render())
-        }
+        StorageEvent::DeviceAdded(_) => handle_request(StorageRequest::Fetch).then(render()),
     }
 }

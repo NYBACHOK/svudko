@@ -1,6 +1,6 @@
 use super::{
-    Command, Effect, Event, ExchangeEvent, ExchangeRequest, Model, NotificationBuilder, Operation,
-    ServiceDiscoveryEvent, StorageEvent, StorageRequest, UnknownSignature, render,
+    ClientId, Command, Effect, Event, ExchangeEvent, ExchangeRequest, Model, NotificationBuilder,
+    Operation, ServiceDiscoveryEvent, StorageEvent, StorageRequest, render,
 };
 
 pub mod exchange;

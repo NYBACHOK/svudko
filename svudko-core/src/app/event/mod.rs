@@ -7,19 +7,19 @@ use crate::event::exchange::ExchangeRequestEvent;
 
 pub mod exchange;
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub enum Event {
     Initialize,
     // Shell shared events
     Exchange(ExchangeRequestEvent),
     Storage(StorageRequest),
-    AllowHost((Hostname, String)),
+    Pair((Hostname, bool)),
 
     // Core only events
     Core(CoreEvent),
 }
 
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub enum CoreEvent {
     ServiceDiscovery(ServiceDiscoveryEvent),
     Exchange(ExchangeEvent),

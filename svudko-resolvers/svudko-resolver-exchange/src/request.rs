@@ -8,7 +8,7 @@ use crate::event::ExchangeEvent;
 pub enum ExchangeRequest {
     Connect((Hostname, IpAddr)),
     SendFiles((Hostname, Vec<PathBuf>)),
-    TrustedSignatures(HashSet<String>),
+    PairedDevices(HashSet<String>),
 }
 
 impl Operation for ExchangeRequest {

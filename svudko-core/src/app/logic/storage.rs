@@ -6,15 +6,15 @@ use super::{
 pub fn handle(event: StorageEvent, model: &mut Model) -> crux_core::Command<Effect, Event> {
     match event {
         StorageEvent::Fetch(trusted_hosts) => {
-            model.trusted_signatures = trusted_hosts
+            model.paired_devices = trusted_hosts
                 .into_iter()
-                .map(|this| this.signature)
+                .map(|this| (this.hostname, this.signature))
                 .collect();
 
             model.load_state.hosts = true;
 
             handle_request(ExchangeRequest::TrustedSignatures(
-                model.trusted_signatures.clone(),
+                model.paired_devices.values().cloned().collect(),
             ))
             .then(Command::done())
         }

@@ -1,4 +1,4 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 
 use svudko_common::hostname::Hostname;
 use svudko_resolver_sd::models::LocalService;
@@ -7,7 +7,7 @@ use svudko_resolver_sd::models::LocalService;
 pub struct Model {
     pub session_id: SessionId,
     pub load_state: LoadState,
-    pub trusted_signatures: HashSet<String>,
+    pub paired_devices: HashMap<Hostname, String>,
     pub unknown_signatures: HashMap<Hostname, String>,
     pub discovered_services: HashMap<Hostname, LocalService>,
 }

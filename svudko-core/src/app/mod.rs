@@ -10,6 +10,7 @@ use svudko_resolver_storage::{event::StorageEvent, request::StorageRequest};
 use crate::{
     app::logic::{exchange, handle_request, sd, storage},
     event::exchange::ExchangeRequestEvent,
+    view_model::LocalDevices,
 };
 
 use self::{
@@ -101,7 +102,10 @@ impl App for Application {
                 .discovered_services
                 .keys()
                 .map(ToOwned::to_owned)
-                .map(Into::into)
+                .map(|hostname| LocalDevices {
+                    paired: model.paired_devices.get(&hostname).is_some(),
+                    hostname,
+                })
                 .collect(),
         };
 

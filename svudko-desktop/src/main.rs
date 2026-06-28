@@ -3,7 +3,7 @@
 
 use std::{error::Error, rc::Rc, sync::Arc};
 
-use slint::{ModelRc, SharedString, ToSharedString, VecModel};
+use slint::{ModelRc, ToSharedString, VecModel};
 use svudko_core::{ApplicationCore, Effect, event::Event};
 
 slint::include_modules!();
@@ -23,9 +23,22 @@ impl From<svudko_core::view_model::ViewModel> for ViewModel {
             discovered_hosts: ModelRc::new(Rc::new(
                 discovered_services
                     .into_iter()
-                    .map(SharedString::from)
+                    .map(LocalDevices::from)
                     .collect::<VecModel<_>>(),
             )),
+        }
+    }
+}
+
+impl From<svudko_core::view_model::LocalDevices> for LocalDevices {
+    fn from(
+        svudko_core::view_model::LocalDevices{ hostname, paired }: svudko_core::view_model::LocalDevices,
+    ) -> Self {
+        Self {
+            hostname: Hostname {
+                name: hostname.into_inner().to_shared_string(),
+            },
+            paired,
         }
     }
 }

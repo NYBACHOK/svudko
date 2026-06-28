@@ -7,8 +7,17 @@ export enum PopupIndex {
     Setting,
 }
 
+export struct Hostname {
+    name: string,
+}
+
+export struct LocalDevices {
+    hostname: Hostname,
+    paired: bool,
+}
+
 export struct ViewModel {
-    discovered_hosts: [string],
+    discovered_hosts: [LocalDevices],
 }
 
 export global Logic {
@@ -17,8 +26,8 @@ export global Logic {
     in-out property <string> error_msg: "";
 
     callback open_settings();
-    callback connect_to_host(string);
-    callback select_files(string);
+    callback select_files(Hostname);
+    callback pair_devices(Hostname);
 
     public function switch-tab(index: TabIndex) {
         if (Logic.current-tab-index != index) {

@@ -1,5 +1,5 @@
 import { ListView, HorizontalBox, Button } from "std-widgets.slint";
-import { Logic } from "../logic.slint";
+import { Logic, LocalDevices } from "../logic.slint";
 import { Theme } from "../theme.slint";
 import { NoDataImg } from "../components/no_data.slint";
 import { CenterLayout } from "../components/center_layout.slint";
@@ -8,7 +8,7 @@ import { Icons } from "../icons.slint";
 import { Divider } from "../components/divider.slint";
 
 export component Home inherits Rectangle {
-    in-out property <[string]> discovered_hosts <=> Logic.model.discovered-hosts;
+    in-out property <[LocalDevices]> discovered_hosts <=> Logic.model.discovered-hosts;
 
     background: Theme.secondary-background;
 
@@ -24,23 +24,38 @@ export component Home inherits Rectangle {
                 padding: Theme.padding;
                 Text {
 
-                    text: host;
+                    text: host.hostname.name;
                     vertical-alignment: center;
                     color: Theme.primary-text-color;
                 }
 
-                IconBtn {
+                if host.paired : IconBtn {
                     text: "Select Files";
                     text-color: Theme.secondary-text-color;
 
-                    icon: Icons.send_files;
+                    icon: Icons.directory-arrow-left;
                     border-color: Theme.dark-text-color;
                     border-radius: Theme.border-radius;
 
                     bg-color: Theme.thirdly-brand-color;
 
                     clicked => {
-                        Logic.select_files(host)
+                        Logic.select_files(host.hostname)
+                    }
+                }
+
+                if !host.paired : IconBtn {
+                    text: "Pair";
+                    text-color: Theme.secondary-text-color;
+
+                    icon: Icons.directory-arrow-left;
+                    border-color: Theme.dark-text-color;
+                    border-radius: Theme.border-radius;
+
+                    bg-color: Theme.thirdly-brand-color;
+
+                    clicked => {
+                        Logic.pair_devices(host.hostname)
                     }
                 }
             }

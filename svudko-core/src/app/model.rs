@@ -16,6 +16,7 @@ pub struct Model {
 #[derive(Debug, Clone, Default)]
 pub struct LoadState {
     pub paired_devices: bool,
+    pub client_id: bool,
 }
 
 #[derive(Debug, Clone)]

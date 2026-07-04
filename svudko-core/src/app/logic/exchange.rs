@@ -16,5 +16,10 @@ pub fn handle(event: ExchangeEvent, model: &mut Model) -> crux_core::Command<Eff
 
             render()
         }
+        ExchangeEvent::UpdatedClient => {
+            model.load_state.client_id = true;
+
+            Command::done()
+        }
     }
 }

@@ -2,12 +2,12 @@ use std::{collections::HashSet, net::IpAddr, path::PathBuf};
 
 use svudko_common::{hostname::Hostname, resolver::Operation};
 
-use crate::event::ExchangeEvent;
+use crate::{event::ExchangeEvent, models::ClientId};
 
 #[derive(Clone, Debug)]
 pub enum ExchangeRequest {
-    Connect((Hostname, IpAddr)),
-    SendFiles((Hostname, Vec<PathBuf>)),
+    UpdateClientId(ClientId),
+    SendFiles((Hostname, IpAddr, Vec<PathBuf>)),
     PairedDevices(HashSet<String>),
 }
 

@@ -20,3 +20,12 @@ impl From<ClientIdRaw> for ClientId {
         }
     }
 }
+
+impl From<ClientId> for ClientIdRaw {
+    fn from(ClientId { hostname, id }: ClientId) -> Self {
+        Self {
+            hostname: hostname.into_inner(),
+            id,
+        }
+    }
+}

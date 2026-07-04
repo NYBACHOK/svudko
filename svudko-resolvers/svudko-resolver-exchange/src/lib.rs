@@ -1,24 +1,24 @@
 use std::{
-    char,
-    collections::{HashMap, HashSet},
+    collections::HashSet,
     fmt::Debug,
     marker::PhantomData,
-    net::{IpAddr, SocketAddr, SocketAddrV4},
-    path::PathBuf,
     sync::{Arc, RwLock},
 };
 
-use quinn::{Connection, Endpoint, VarInt};
+use quinn::Endpoint;
 use rcgen::SanType;
 use svudko_common::{
-    ASYNC_RUNTIME, DEFAULT_SERVER_ADDR, POISONED_LOCK_MSG, SERVER_PORT,
-    hostname::{HOSTNAME, Hostname},
+    DEFAULT_SERVER_ADDR, POISONED_LOCK_MSG,
+    hostname::HOSTNAME,
     resolver::{HandlerResolver, Operation},
 };
 
 use crate::{
-    errors::ExchangeErrors, event::ExchangeEvent, models::ClientId,
-    protocol::server::start_handling_incoming, request::ExchangeRequest,
+    errors::ExchangeErrors,
+    event::ExchangeEvent,
+    models::ClientId,
+    protocol::{client, server::start_handling_incoming},
+    request::ExchangeRequest,
 };
 
 mod endpoint;
@@ -29,16 +29,11 @@ mod protocol;
 pub mod request;
 mod verification;
 
-#[derive(rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
-struct ProtocolDescription {
-    files: Vec<String>,
-}
-
 #[derive(Debug)]
 pub struct ExchangeResolver<T> {
     endpoint: Endpoint,
+    client_id: Option<ClientId>,
     _phantom: PhantomData<T>,
-    connections: HashMap<Hostname, Connection>,
     paired_devices: Arc<RwLock<HashSet<String>>>,
     // incoming_connections: Arc<Mutex<HashMap<String, (Connection, RecvStream)>>>,
 }
@@ -89,8 +84,8 @@ where
 
         Ok(Self {
             endpoint,
-            connections: Default::default(),
             paired_devices,
+            client_id: None,
             _phantom: PhantomData,
         })
     }
@@ -100,86 +95,30 @@ where
         op: &ExchangeRequest,
     ) -> Result<<Self::Op as Operation>::Output, Self::Err> {
         match op {
-            ExchangeRequest::Connect((hostname, ip_addr)) => {
-                let addr = match *ip_addr {
-                    IpAddr::V4(ip_addr) => SocketAddr::V4(SocketAddrV4::new(ip_addr, SERVER_PORT)),
-                    IpAddr::V6(_ip) => unimplemented!("ipv6 mode"), // SocketAddr::V6(SocketAddrV6::new(ip, SERVER_PORT, 0, 0)), // TODO: find real values
-                };
+            ExchangeRequest::UpdateClientId(client_id) => {
+                self.client_id = Some(client_id.to_owned());
 
-                let connection = self
-                    .endpoint
-                    .connect(addr, &hostname.to_local_dns_name())?
-                    .await?;
-
-                self.connections.insert(hostname.to_owned(), connection);
-
-                Ok(ExchangeEvent::None)
+                Ok(ExchangeEvent::UpdatedClient)
             }
             ExchangeRequest::PairedDevices(trusted_hosts) => {
                 *self.paired_devices.write().expect(POISONED_LOCK_MSG) = trusted_hosts.to_owned();
 
                 Ok(ExchangeEvent::None)
             }
-            ExchangeRequest::SendFiles((hostname, files)) => {
-                self.send_files(hostname, files.clone());
+            ExchangeRequest::SendFiles((hostname, addr, files)) => {
+                client::handle(
+                    &self.endpoint,
+                    hostname,
+                    addr,
+                    self.client_id
+                        .clone()
+                        .ok_or_else(|| anyhow::anyhow!("not ready to send files"))?,
+                    files,
+                )
+                .await?;
 
                 Ok(ExchangeEvent::None)
             }
-        }
-    }
-}
-
-impl<T> ExchangeResolver<T> {
-    pub fn send_files(&mut self, hostname: &Hostname, files: Vec<PathBuf>) {
-        let connection = self.connections.remove(hostname).unwrap();
-
-        ASYNC_RUNTIME.spawn(async move {
-            let _ = handle(connection, files)
-                .await
-                .inspect_err(|e| tracing::error!(err = %e, "during files sending"));
-        });
-
-        async fn handle(connection: Connection, files: Vec<PathBuf>) -> Result<(), anyhow::Error> {
-            {
-                let description = ProtocolDescription {
-                    files: files
-                        .iter()
-                        .filter_map(|this| {
-                            this.file_name().map(|this| {
-                                this.to_string_lossy()
-                                    .replace(char::REPLACEMENT_CHARACTER, "")
-                            })
-                        })
-                        .collect(),
-                };
-
-                let desc_buf = rkyv::to_bytes::<rkyv::rancor::Error>(&description)?;
-
-                let mut stream = connection.open_uni().await?;
-
-                stream.write_all(desc_buf.as_slice()).await?;
-
-                let _ = stream.finish();
-
-                tracing::info!("wrote description");
-            }
-
-            for file_path in files {
-                let mut stream = connection.open_uni().await?;
-
-                tracing::info!("writing file: {}", file_path.display());
-
-                let file = tokio::fs::read(file_path).await?;
-
-                stream.write_all(&file).await?;
-
-                let _ = stream.finish();
-                stream.stopped().await?;
-            }
-
-            connection.close(VarInt::from_u32(0), "finish".as_bytes());
-
-            Ok(())
         }
     }
 }

@@ -3,24 +3,19 @@ use std::{io::Write, path::PathBuf};
 use quinn::Connection;
 use tokio::io::AsyncReadExt;
 
-use crate::{ProtocolDescription, protocol::EXCHANGE_FILE_CHUNK_SIZE};
+use crate::protocol::EXCHANGE_FILE_CHUNK_SIZE;
 
 pub async fn handle_files_exchange_step(
     connection: &Connection,
     download_dir: PathBuf,
 ) -> Result<(), anyhow::Error> {
-    let ProtocolDescription { files } = {
+    let files_num = {
         let mut stream = connection.accept_uni().await?;
 
-        let msg = stream.read_to_end(usize::MAX).await?;
-
-        let archived =
-            rkyv::access::<rkyv::Archived<ProtocolDescription>, rkyv::rancor::Error>(&msg)?;
-
-        rkyv::deserialize::<_, rkyv::rancor::Error>(archived)?
+        stream.read_u64().await?
     };
 
-    for _ in files {
+    for _ in 0..files_num {
         let mut stream = connection.accept_uni().await?;
 
         let size_name = stream.read_u64().await? as usize;

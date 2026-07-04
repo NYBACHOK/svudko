@@ -48,26 +48,28 @@ impl App for Application {
             ]),
             Event::Storage(req) => handle_request(req),
             Event::Exchange(req) => match req {
-                ExchangeRequestEvent::Connect(hostname) => {
-                    match model.discovered_services.get(&hostname) {
-                        Some(service) => handle_request(ExchangeRequest::Connect((
-                            hostname,
-                            service
-                                .addresses
-                                .iter()
-                                .find(|this| this.is_ipv4() && !this.is_loopback())
-                                .unwrap()
-                                .to_owned()
-                                .to_ip_addr(),
-                        ))),
-                        None => Command::notify_shell(CoreErrorEffect(
-                            "failed to find such host".to_owned(),
-                        ))
-                        .build(),
-                    }
-                }
-                ExchangeRequestEvent::SendFiles(files) => {
-                    handle_request(ExchangeRequest::SendFiles(files))
+                ExchangeRequestEvent::SendFiles((hostname, files)) => {
+                    let service = match model.discovered_services.get(&hostname) {
+                        Some(service) => service,
+                        None => {
+                            return Command::notify_shell(CoreErrorEffect(
+                                "failed to find such host".to_owned(),
+                            ))
+                            .build();
+                        }
+                    };
+
+                    handle_request(ExchangeRequest::SendFiles((
+                        hostname,
+                        service
+                            .addresses
+                            .iter()
+                            .find(|this| this.is_ipv4() && !this.is_loopback())
+                            .unwrap()
+                            .to_owned()
+                            .to_ip_addr(),
+                        files,
+                    )))
                 }
             },
 

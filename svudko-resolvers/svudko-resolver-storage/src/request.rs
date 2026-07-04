@@ -5,6 +5,7 @@ use crate::event::StorageEvent;
 #[derive(Debug, Clone)]
 pub enum StorageRequest {
     Fetch,
+    ClientId,
     NewHost {
         hostname: Hostname,
         identifier: String,

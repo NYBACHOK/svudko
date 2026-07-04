@@ -70,6 +70,7 @@ impl HandlerResolver for StorageResolver {
                     }
                 }
             }
+            StorageRequest::ClientId => todo!(),
         };
 
         Ok(event)

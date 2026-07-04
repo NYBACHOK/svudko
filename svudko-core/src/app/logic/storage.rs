@@ -1,3 +1,6 @@
+use svudko_common::hostname::HOSTNAME;
+use svudko_resolver_exchange::models::ClientId;
+
 use super::{
     Command, Effect, Event, ExchangeRequest, Model, StorageEvent, StorageRequest, handle_request,
     render,
@@ -22,5 +25,13 @@ pub fn handle(event: StorageEvent, model: &mut Model) -> crux_core::Command<Effe
             handle_request(StorageRequest::Fetch).then(render())
         }
         StorageEvent::DeviceAdded(_) => handle_request(StorageRequest::Fetch).then(render()),
+        StorageEvent::ClientId(uuid) => {
+            let client = ClientId {
+                hostname: HOSTNAME.to_owned(),
+                id: uuid.to_string(),
+            };
+
+            handle_request(ExchangeRequest::UpdateClientId(client))
+        }
     }
 }

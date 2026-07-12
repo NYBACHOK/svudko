@@ -9,8 +9,18 @@ pub mod resolver;
 
 pub const POISONED_LOCK_MSG: &str = "poisoned lock";
 
-pub static ASYNC_RUNTIME: LazyLock<tokio::runtime::Runtime> =
-    LazyLock::new(|| tokio::runtime::Runtime::new().expect("failed to init runtime"));
+pub static ASYNC_RUNTIME: LazyLock<tokio::runtime::Runtime> = LazyLock::new(|| {
+    let mut builder = tokio::runtime::Builder::new_multi_thread();
+    #[cfg(debug_assertions)]
+    {
+        builder.thread_stack_size(8 * 1024 * 1024);
+    }
+
+    builder
+        .enable_all()
+        .build()
+        .expect("failed to init runtime")
+});
 
 pub const DEFAULT_SERVER_ADDR: SocketAddr =
     SocketAddr::new(IpAddr::V6(Ipv6Addr::UNSPECIFIED), SERVER_PORT);

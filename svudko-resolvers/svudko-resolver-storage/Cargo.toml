@@ -12,5 +12,5 @@ svudko-common.workspace = true
 tracing.workspace = true
 thiserror.workspace = true
 uuid.workspace = true
-tokio = { workspace = true, features = ["fs"]}
+tokio = { workspace = true, features = []}
 sqlx = { workspace = true, features = ["migrate", "macros", "runtime-tokio", "tls-rustls", "sqlite" ] }

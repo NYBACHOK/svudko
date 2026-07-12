@@ -8,7 +8,7 @@ use std::{
 use quinn::Endpoint;
 use rcgen::SanType;
 use svudko_common::{
-    DEFAULT_SERVER_ADDR, POISONED_LOCK_MSG,
+    ASYNC_RUNTIME, DEFAULT_SERVER_ADDR, POISONED_LOCK_MSG,
     hostname::HOSTNAME,
     resolver::{HandlerResolver, Operation},
 };
@@ -65,6 +65,8 @@ where
         Self: Sized,
     {
         let paired_devices = Default::default();
+
+        let _guard = ASYNC_RUNTIME.enter();
 
         let endpoint = crate::endpoint::endpoint(
             DEFAULT_SERVER_ADDR,

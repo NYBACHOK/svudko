@@ -44,9 +44,9 @@ impl HandlerResolver for StorageResolver {
     where
         Self: Sized,
     {
-        Ok(Self {
-            pool: ASYNC_RUNTIME.block_on(setup_db())?,
-        })
+        let pool = ASYNC_RUNTIME.block_on(setup_db())?;
+
+        Ok(Self { pool })
     }
 
     async fn resolve(

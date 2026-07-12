@@ -31,7 +31,7 @@ pub async fn setup_db() -> Result<sqlx::SqlitePool, ConnectError> {
     if let Err(ConnectError::Migration(_)) = db_pool {
         #[cfg(debug_assertions)]
         {
-            tokio::fs::remove_file(&database_location).await?;
+            std::fs::remove_file(&database_location)?;
             tracing::warn!("Database deleted. Creating new");
         }
 

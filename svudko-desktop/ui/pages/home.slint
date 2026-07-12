@@ -1,5 +1,9 @@
-import { ListView, HorizontalBox, Button } from "std-widgets.slint";
-import { Logic, LocalDevices } from "../logic.slint";
+import {
+    ListView,
+    HorizontalBox,
+    Button, 
+} from "std-widgets.slint";
+import { Logic, LocalDevices, Hostname } from "../logic.slint";
 import { Theme } from "../theme.slint";
 import { NoDataImg } from "../components/no_data.slint";
 import { CenterLayout } from "../components/center_layout.slint";
@@ -9,59 +13,110 @@ import { Divider } from "../components/divider.slint";
 
 export component Home inherits Rectangle {
     in-out property <[LocalDevices]> discovered_hosts <=> Logic.model.discovered-hosts;
+    in-out property <[Hostname]> pairing_requests <=> Logic.model.pairing_requests;
 
     background: Theme.secondary-background;
 
-    if discovered_hosts.length == 0: NoDataImg {
-        text: "No hosts found";
-    }
+    VerticalLayout {
+        padding: Theme.padding;
 
-    ListView {
+        if discovered_hosts.length == 0: NoDataImg {
+            text: "No hosts found";
+        }
 
-        for host[i] in discovered_hosts: CenterLayout {
-
-            HorizontalLayout {
-                padding: Theme.padding;
-                Text {
-
-                    text: host.hostname.name;
-                    vertical-alignment: center;
-                    color: Theme.primary-text-color;
+        ListView {
+            for host[i] in discovered_hosts: CenterLayout {
+                Divider {
+                    width: 95%;
                 }
 
-                if host.paired : IconBtn {
-                    text: "Select Files";
-                    text-color: Theme.secondary-text-color;
+                HorizontalLayout {
+                    padding: Theme.padding;
+                    Text {
 
-                    icon: Icons.directory-arrow-left;
-                    border-color: Theme.dark-text-color;
-                    border-radius: Theme.border-radius;
-
-                    bg-color: Theme.thirdly-brand-color;
-
-                    clicked => {
-                        Logic.select_and_send_files(host.hostname)
+                        text: host.hostname.name;
+                        vertical-alignment: center;
+                        color: Theme.primary-text-color;
                     }
-                }
 
-                if !host.paired : IconBtn {
-                    text: "Pair";
-                    text-color: Theme.secondary-text-color;
+                    if host.paired: IconBtn {
+                        text: "Select Files";
+                        text-color: Theme.secondary-text-color;
 
-                    icon: Icons.directory-arrow-left;
-                    border-color: Theme.dark-text-color;
-                    border-radius: Theme.border-radius;
+                        icon: Icons.directory-arrow-left;
+                        border-color: Theme.dark-text-color;
+                        border-radius: Theme.border-radius;
 
-                    bg-color: Theme.thirdly-brand-color;
+                        bg-color: Theme.thirdly-brand-color;
 
-                    clicked => {
-                        Logic.pair_devices(host.hostname)
+                        clicked => {
+                            Logic.select_and_send_files(host.hostname)
+                        }
+                    }
+
+                    if !host.paired: IconBtn {
+                        text: "Pair";
+                        text-color: Theme.secondary-text-color;
+
+                        icon: Icons.directory-arrow-left;
+                        border-color: Theme.dark-text-color;
+                        border-radius: Theme.border-radius;
+
+                        bg-color: Theme.thirdly-brand-color;
+
+                        clicked => {
+                            Logic.pair_request(host.hostname)
+                        }
                     }
                 }
             }
+        }
 
-            Divider {
-                width: 95%;
+        if pairing_requests.length != 0: Divider {
+            width: 95%;
+        }
+
+        ListView {
+            for request[i] in pairing_requests: CenterLayout {
+                HorizontalLayout {
+                    padding: Theme.padding;
+                    Text {
+
+                        text: request.name;
+                        vertical-alignment: center;
+                        color: Theme.primary-text-color;
+                    }
+
+                    IconBtn {
+                        text: "Accept";
+                        text-color: Theme.secondary-text-color;
+
+                        icon: Icons.directory-arrow-left;
+                        border-color: Theme.dark-text-color;
+                        border-radius: Theme.border-radius;
+
+                        bg-color: Theme.thirdly-brand-color;
+
+                        clicked => {
+                            Logic.pair_response(request, true)
+                        }
+                    }
+
+                    IconBtn {
+                        text: "Deny";
+                        text-color: Theme.secondary-text-color;
+
+                        icon: Icons.directory-arrow-left;
+                        border-color: Theme.dark-text-color;
+                        border-radius: Theme.border-radius;
+
+                        bg-color: Theme.thirdly-brand-color;
+
+                        clicked => {
+                            Logic.pair_response(request, false)
+                        }
+                    }
+                }
             }
         }
     }

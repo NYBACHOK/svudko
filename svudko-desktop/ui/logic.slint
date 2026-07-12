@@ -28,7 +28,8 @@ export global Logic {
 
     callback open_settings();
     callback select_and_send_files(Hostname);
-    callback pair_devices(Hostname);
+    callback pair_request(Hostname);
+    callback pair_response(Hostname, bool);
 
     public function switch-tab(index: TabIndex) {
         if (Logic.current-tab-index != index) {

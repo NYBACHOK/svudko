@@ -115,7 +115,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     });
 
-    app_logic.on_pair_devices({
+    app_logic.on_pair_request({
         let core = Arc::clone(&core);
 
         move |Hostname { name }| {

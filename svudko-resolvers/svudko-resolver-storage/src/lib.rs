@@ -133,7 +133,7 @@ impl StorageResolver {
 
         let id = uuid::Uuid::new_v4();
 
-        sqlx::query("INSERT INTO device_id (device) VALUES ($1);")
+        sqlx::query("INSERT INTO device_id (id, device) VALUES (0, $1);")
             .bind(id)
             .execute(&self.pool)
             .await?;

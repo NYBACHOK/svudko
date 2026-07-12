@@ -26,9 +26,7 @@ pub async fn handle_exchange(
         IpAddr::V6(_ip) => unimplemented!("ipv6 mode"), // SocketAddr::V6(SocketAddrV6::new(ip, SERVER_PORT, 0, 0)), // TODO: find real values
     };
 
-    let connection = endpoint
-        .connect(addr, &hostname.to_local_dns_name())?
-        .await?;
+    let connection = endpoint.connect(addr, hostname.as_str())?.await?;
 
     let client_id = ClientIdRaw::from(client);
 

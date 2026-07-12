@@ -30,6 +30,8 @@ pub fn start_handling_incoming<T, U>(
         }
 
         while let Some(accept) = endpoint.accept().await {
+            tracing::info!("received incoming connection");
+
             let _ = handle(
                 accept,
                 Arc::clone(&paired_devices),
@@ -56,6 +58,8 @@ where
 
     let (intent, signature) =
         intent::handle_intent_exchange_step(&connection, paired_devices).await?;
+
+    tracing::info!("exchanged intents");
 
     match (intent, signature) {
         (super::CommunicationIntent::Pair, None) => connection.close(OK_STATUS, b"paired"),

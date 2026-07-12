@@ -26,6 +26,14 @@ impl From<svudko_core::view_model::ViewModel> for ViewModel {
                     .map(LocalDevices::from)
                     .collect::<VecModel<_>>(),
             )),
+            pairing_requests: ModelRc::new(Rc::new(
+                pairing_requests
+                    .into_iter()
+                    .map(|this| Hostname {
+                        name: this.into_inner().to_shared_string(),
+                    })
+                    .collect::<VecModel<_>>(),
+            )),
         }
     }
 }

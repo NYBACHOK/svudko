@@ -13,4 +13,4 @@ tracing.workspace = true
 thiserror.workspace = true
 uuid.workspace = true
 tokio = { workspace = true, features = []}
-sqlx = { workspace = true, features = ["migrate", "macros", "runtime-tokio", "tls-rustls", "sqlite" ] }
+sqlx = { workspace = true, features = ["migrate", "macros", "runtime-tokio", "tls-rustls", "sqlite", "uuid" ] }

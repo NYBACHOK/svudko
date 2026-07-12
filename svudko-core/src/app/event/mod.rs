@@ -1,4 +1,3 @@
-use svudko_common::hostname::Hostname;
 use svudko_resolver_exchange::{errors::ExchangeErrors, event::ExchangeEvent};
 use svudko_resolver_sd::{ServiceDiscoveryErrors, event::ServiceDiscoveryEvent};
 use svudko_resolver_storage::{StorageErrors, event::StorageEvent, request::StorageRequest};
@@ -13,7 +12,6 @@ pub enum Event {
     // Shell shared events
     Exchange(ExchangeRequestEvent),
     Storage(StorageRequest),
-    Pair((Hostname, bool)),
 
     // Core only events
     Core(CoreEvent),

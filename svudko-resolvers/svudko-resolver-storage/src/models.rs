@@ -26,3 +26,8 @@ impl From<PairedDeviceRaw> for PairedDevice {
         }
     }
 }
+
+#[derive(FromRow)]
+pub(crate) struct DeviceId {
+    pub device: sqlx::types::uuid::Uuid,
+}

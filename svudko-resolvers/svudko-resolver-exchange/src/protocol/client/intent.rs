@@ -9,12 +9,11 @@ use crate::{
 pub async fn handle_intent_exchange_step(
     connection: &Connection,
     client: &ClientIdRaw,
+    intent: CommunicationIntent,
 ) -> Result<(), anyhow::Error> {
     let (mut send_stream, mut recv_stream) = connection.open_bi().await?;
 
-    send_stream
-        .write_u8(CommunicationIntent::Exchange.into())
-        .await?;
+    send_stream.write_u8(intent.into()).await?;
 
     {
         let client_buf = rkyv::to_bytes::<rkyv::rancor::Error>(client).expect("can't fail");

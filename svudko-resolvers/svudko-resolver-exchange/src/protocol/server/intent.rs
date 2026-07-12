@@ -51,6 +51,8 @@ async fn inner(
         rkyv::deserialize::<_, rkyv::rancor::Error>(archived)?.into()
     };
 
+    dbg!(&client_id.id);
+
     let is_paired = paired_devices
         .read()
         .expect(POISONED_LOCK_MSG)

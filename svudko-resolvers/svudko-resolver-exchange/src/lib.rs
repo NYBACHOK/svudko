@@ -108,7 +108,7 @@ where
                 Ok(ExchangeEvent::None)
             }
             ExchangeRequest::SendFiles((hostname, addr, files)) => {
-                client::handle(
+                client::handle_exchange(
                     &self.endpoint,
                     hostname,
                     addr,
@@ -121,7 +121,19 @@ where
 
                 Ok(ExchangeEvent::None)
             }
-            ExchangeRequest::Pair(_) => todo!(),
+            ExchangeRequest::Pair((hostname, addr)) => {
+                client::handle_pair(
+                    &self.endpoint,
+                    hostname,
+                    addr,
+                    self.client_id
+                        .clone()
+                        .ok_or_else(|| anyhow::anyhow!("not ready to send files"))?,
+                )
+                .await?;
+
+                Ok(ExchangeEvent::None)
+            }
         }
     }
 }

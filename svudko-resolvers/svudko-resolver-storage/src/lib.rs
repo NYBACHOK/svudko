@@ -17,7 +17,7 @@ pub use errors::*;
 
 use crate::{
     event::StorageEvent,
-    models::{PairedDevice, PairedDeviceRaw},
+    models::{DeviceId, PairedDevice, PairedDeviceRaw},
     request::StorageRequest,
     setup::setup_db,
 };
@@ -70,7 +70,11 @@ impl HandlerResolver for StorageResolver {
                     }
                 }
             }
-            StorageRequest::ClientId => todo!(),
+            StorageRequest::ClientId => {
+                let id = self.client_id().await?;
+
+                StorageEvent::ClientId(id)
+            }
         };
 
         Ok(event)
@@ -116,5 +120,24 @@ impl StorageResolver {
         .await
         .map(Into::into)
         .map_err(Into::into)
+    }
+
+    pub async fn client_id(&self) -> Result<uuid::Uuid, StorageErrors> {
+        let id = sqlx::query_as::<_, DeviceId>("SELECT device FROM device_id")
+            .fetch_optional(&self.pool)
+            .await?;
+
+        if let Some(id) = id {
+            return Ok(id.device);
+        }
+
+        let id = uuid::Uuid::new_v4();
+
+        sqlx::query("INSERT INTO device_id (device) VALUES ($1);")
+            .bind(id)
+            .execute(&self.pool)
+            .await?;
+
+        Ok(id)
     }
 }

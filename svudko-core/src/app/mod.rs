@@ -37,6 +37,7 @@ impl App for Application {
         match event {
             Event::Initialize => Command::all([
                 handle_request(StorageRequest::Fetch),
+                handle_request(StorageRequest::ClientId),
                 handle_request(ServiceDiscoveryRequest::EnableService(
                     model.session_id.uuid(),
                 )),
@@ -44,23 +45,6 @@ impl App for Application {
             ]),
             Event::Storage(req) => handle_request(req),
             Event::Exchange(req) => event::exchange::handle(req, model),
-            Event::Pair((hostname, is_paired)) => match model.pairing_requests.remove(&hostname) {
-                Some((identifier, tx)) => {
-                    let _ = tx.send(is_paired);
-
-                    if is_paired {
-                        handle_request(StorageRequest::NewHost {
-                            hostname,
-                            identifier,
-                            overwrite: true,
-                        })
-                        .then(render())
-                    } else {
-                        render()
-                    }
-                }
-                None => render(),
-            },
             Event::Core(core_event) => match core_event {
                 CoreEvent::Error(e) => {
                     tracing::error!(err = %e, "error in core");

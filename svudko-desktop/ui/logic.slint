@@ -27,7 +27,7 @@ export global Logic {
     in-out property <string> error_msg: "";
 
     callback open_settings();
-    callback select_files(Hostname);
+    callback select_and_send_files(Hostname);
     callback pair_devices(Hostname);
 
     public function switch-tab(index: TabIndex) {

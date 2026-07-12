@@ -40,7 +40,7 @@ export component Home inherits Rectangle {
                     bg-color: Theme.thirdly-brand-color;
 
                     clicked => {
-                        Logic.select_files(host.hostname)
+                        Logic.select_and_send_files(host.hostname)
                     }
                 }
 

@@ -71,6 +71,7 @@ impl App for Application {
                         files,
                     )))
                 }
+                ExchangeRequestEvent::Pair(hostname) => todo!(),
             },
 
             Event::Pair((hostname, is_paired)) => match model.pairing_requests.remove(&hostname) {

@@ -1,7 +1,7 @@
 // Prevent console window in addition to Slint window in Windows release builds when, e.g., starting the app via file manager. Ignored on other platforms.
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::{error::Error, rc::Rc, sync::Arc};
+use std::{error::Error, path::PathBuf, rc::Rc, sync::Arc};
 
 use slint::{ModelRc, ToSharedString, VecModel};
 use svudko_core::{ApplicationCore, Effect, event::Event};
@@ -85,30 +85,45 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     })?;
 
-    // app.on_select_files({
-    //     let core = Arc::clone(&core);
+    let app_logic = app.global::<Logic<'_>>();
 
-    //     move |hostname| {
-    //         let _ = slint::spawn_local({
-    //             let core = Arc::clone(&core);
+    app_logic.on_select_and_send_files({
+        let core = Arc::clone(&core);
 
-    //             async move {
-    //                 let dialog = rfd::AsyncFileDialog::new()
-    //                     .set_directory(dirs::home_dir().expect("always valid"))
-    //                     .pick_files()
-    //                     .await;
+        move |Hostname { name }| {
+            let _ = slint::spawn_local({
+                let core = Arc::clone(&core);
 
-    //                 if let Some(files) = dialog {
-    //                     core.inner()
-    //                         .update(Event::Exchange(ExchangeRequestEvent::SendFiles((
-    //                             hostname.to_string().into(),
-    //                             files.into_iter().map(PathBuf::from).collect(),
-    //                         ))));
-    //                 }
-    //             }
-    //         });
-    //     }
-    // });
+                async move {
+                    let dialog = rfd::AsyncFileDialog::new()
+                        .set_directory(dirs::home_dir().expect("always valid"))
+                        .pick_files()
+                        .await;
+
+                    if let Some(files) = dialog {
+                        let files = files.into_iter().map(PathBuf::from).collect();
+
+                        core.update(Event::Exchange(
+                            svudko_core::event::exchange::ExchangeRequestEvent::SendFiles((
+                                name.to_string().into(),
+                                files,
+                            )),
+                        ));
+                    }
+                }
+            });
+        }
+    });
+
+    app_logic.on_pair_devices({
+        let core = Arc::clone(&core);
+
+        move |Hostname { name }| {
+            core.update(Event::Exchange(
+                svudko_core::event::exchange::ExchangeRequestEvent::Pair(name.to_string().into()),
+            ));
+        }
+    });
 
     core.update(Event::Initialize);
     app.run()?;

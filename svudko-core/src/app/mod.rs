@@ -5,11 +5,7 @@ use svudko_resolver_exchange::{event::ExchangeEvent, models::ClientId, request::
 use svudko_resolver_sd::{event::ServiceDiscoveryEvent, request::ServiceDiscoveryRequest};
 use svudko_resolver_storage::{event::StorageEvent, request::StorageRequest};
 
-use crate::{
-    app::logic::{exchange, handle_request, sd, storage},
-    event::exchange::ExchangeRequestEvent,
-    view_model::LocalDevices,
-};
+use crate::{app::logic::handle_request, view_model::LocalDevices};
 
 use self::{
     effect::{CoreErrorEffect, Effect},
@@ -47,33 +43,7 @@ impl App for Application {
                 handle_request(ServiceDiscoveryRequest::BeginBrowseForServices),
             ]),
             Event::Storage(req) => handle_request(req),
-            Event::Exchange(req) => match req {
-                ExchangeRequestEvent::SendFiles((hostname, files)) => {
-                    let service = match model.discovered_services.get(&hostname) {
-                        Some(service) => service,
-                        None => {
-                            return Command::notify_shell(CoreErrorEffect(
-                                "failed to find such host".to_owned(),
-                            ))
-                            .build();
-                        }
-                    };
-
-                    handle_request(ExchangeRequest::SendFiles((
-                        hostname,
-                        service
-                            .addresses
-                            .iter()
-                            .find(|this| this.is_ipv4() && !this.is_loopback())
-                            .unwrap()
-                            .to_owned()
-                            .to_ip_addr(),
-                        files,
-                    )))
-                }
-                ExchangeRequestEvent::Pair(hostname) => todo!(),
-            },
-
+            Event::Exchange(req) => event::exchange::handle(req, model),
             Event::Pair((hostname, is_paired)) => match model.pairing_requests.remove(&hostname) {
                 Some((identifier, tx)) => {
                     let _ = tx.send(is_paired);
@@ -97,9 +67,9 @@ impl App for Application {
 
                     Command::notify_shell(CoreErrorEffect(e)).build()
                 }
-                CoreEvent::ServiceDiscovery(res) => sd::handle(res, model),
-                CoreEvent::Exchange(event) => exchange::handle(event, model),
-                CoreEvent::Storage(event) => storage::handle(event, model),
+                CoreEvent::ServiceDiscovery(res) => logic::sd::handle(res, model),
+                CoreEvent::Exchange(event) => logic::exchange::handle(event, model),
+                CoreEvent::Storage(event) => logic::storage::handle(event, model),
             },
         }
     }

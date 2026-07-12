@@ -121,6 +121,7 @@ where
 
                 Ok(ExchangeEvent::None)
             }
+            ExchangeRequest::Pair(_) => todo!(),
         }
     }
 }

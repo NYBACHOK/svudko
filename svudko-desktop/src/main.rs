@@ -120,7 +120,9 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         move |Hostname { name }| {
             core.update(Event::Exchange(
-                svudko_core::event::exchange::ExchangeRequestEvent::Pair(name.to_string().into()),
+                svudko_core::event::exchange::ExchangeRequestEvent::PairRequest(
+                    name.to_string().into(),
+                ),
             ));
         }
     });

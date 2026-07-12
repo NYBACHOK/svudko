@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, net::IpAddr};
 
 use svudko_common::hostname::Hostname;
 use svudko_resolver_sd::models::LocalService;
@@ -10,6 +10,18 @@ pub struct Model {
     pub paired_devices: HashMap<Hostname, String>,
     pub discovered_services: HashMap<Hostname, LocalService>,
     pub pairing_requests: HashMap<Hostname, (String, tokio::sync::oneshot::Sender<bool>)>,
+}
+
+impl Model {
+    pub fn addr_for_discovered_device(&self, name: &Hostname) -> Option<IpAddr> {
+        self.discovered_services
+            .get(name)?
+            .addresses
+            .iter()
+            .find(|this| this.is_ipv4() && !this.is_loopback())
+            .to_owned()
+            .map(|this| this.to_ip_addr())
+    }
 }
 
 /// Flags to track resources loaded during first start

@@ -9,6 +9,7 @@ pub enum ExchangeRequest {
     UpdateClientId(ClientId),
     SendFiles((Hostname, IpAddr, Vec<PathBuf>)),
     PairedDevices(HashSet<String>),
+    Pair((Hostname, IpAddr)),
 }
 
 impl Operation for ExchangeRequest {

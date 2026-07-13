@@ -17,12 +17,9 @@ pub async fn handle_intent_exchange_step(
     connection: &Connection,
     paired_devices: Arc<RwLock<HashSet<String>>>,
 ) -> Result<(CommunicationIntent, Option<ClientId>), anyhow::Error> {
-    let (mut send_stream, recv_stream) = connection.open_bi().await?;
+    let (mut send_stream, recv_stream) = connection.accept_bi().await?;
 
     tracing::debug!(tag = %SERVER_LOG_TAG, "opened streams for intent exchange");
-
-    // Write single byte as it required to write something before reading
-    send_stream.write_u8(0).await?;
 
     let res = inner(recv_stream, paired_devices)
         .await

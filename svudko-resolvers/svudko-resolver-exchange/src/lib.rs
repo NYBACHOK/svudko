@@ -21,6 +21,9 @@ use crate::{
     request::ExchangeRequest,
 };
 
+pub(crate) const CLIENT_LOG_TAG: &str = "CLIENT";
+pub(crate) const SERVER_LOG_TAG: &str = "SERVER";
+
 mod endpoint;
 pub mod errors;
 pub mod event;
@@ -108,7 +111,7 @@ where
                 Ok(ExchangeEvent::None)
             }
             ExchangeRequest::SendFiles((hostname, addr, files)) => {
-                client::handle_exchange(
+                client::handle(
                     &self.endpoint,
                     hostname,
                     addr,
@@ -122,13 +125,14 @@ where
                 Ok(ExchangeEvent::None)
             }
             ExchangeRequest::Pair((hostname, addr)) => {
-                client::handle_pair(
+                client::handle(
                     &self.endpoint,
                     hostname,
                     addr,
                     self.client_id
                         .clone()
                         .ok_or_else(|| anyhow::anyhow!("not ready to send files"))?,
+                    &[],
                 )
                 .await?;
 

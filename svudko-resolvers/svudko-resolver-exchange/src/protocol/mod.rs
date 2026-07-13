@@ -44,7 +44,7 @@ impl From<ClientProtocolFlow> for u8 {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum CommunicationIntent {
     Pair,
     Exchange,

@@ -8,6 +8,7 @@ use quinn::{Endpoint, Incoming};
 use svudko_common::ASYNC_RUNTIME;
 
 use crate::{
+    SERVER_LOG_TAG,
     models::ClientId,
     protocol::{OK_STATUS, PAIRING_DENIED_STATUS, PAIRING_REQUIRED_GOT_NO_ID_STATUS},
 };
@@ -26,20 +27,20 @@ pub fn start_handling_incoming<T, U>(
     ASYNC_RUNTIME.spawn(async move {
         let download_dir = dirs::download_dir().unwrap_or_default().join("svudko");
         if !download_dir.exists() {
-            let _ = std::fs::create_dir(&download_dir);
+            let _ = std::fs::create_dir(&download_dir).inspect_err(|e| tracing::error!(tag = %SERVER_LOG_TAG, err = ?e));
         }
 
-        while let Some(accept) = endpoint.accept().await {
-            tracing::info!("received incoming connection");
+        while let Some(incoming) = endpoint.accept().await {
+            tracing::info!(tag = %SERVER_LOG_TAG, addr = %incoming.remote_address(), "received incoming connection");
 
             let _ = handle(
-                accept,
+                incoming,
                 Arc::clone(&paired_devices),
                 download_dir.clone(),
                 Arc::clone(&pairing_handle),
             )
             .await
-            .inspect_err(|e| tracing::error!(err = ?e));
+            .inspect_err(|e| tracing::error!(tag = %SERVER_LOG_TAG, err = ?e));
         }
     });
 }
@@ -59,7 +60,7 @@ where
     let (intent, signature) =
         intent::handle_intent_exchange_step(&connection, paired_devices).await?;
 
-    tracing::info!("exchanged intents");
+    tracing::debug!(tag = %SERVER_LOG_TAG,  intent =?intent, addr = %connection.remote_address(), is_paired = %signature.is_some(), "exchanged intents");
 
     match (intent, signature) {
         (super::CommunicationIntent::Pair, None) => connection.close(OK_STATUS, b"paired"),

@@ -13,7 +13,7 @@ pub static ASYNC_RUNTIME: LazyLock<tokio::runtime::Runtime> = LazyLock::new(|| {
     let mut builder = tokio::runtime::Builder::new_multi_thread();
     #[cfg(debug_assertions)]
     {
-        builder.thread_stack_size(8 * 1024 * 1024);
+        builder.thread_stack_size(16 * 1024 * 1024);
     }
 
     builder

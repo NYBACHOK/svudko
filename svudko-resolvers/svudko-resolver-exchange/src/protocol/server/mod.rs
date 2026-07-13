@@ -57,6 +57,8 @@ where
 {
     let connection = incoming.await?;
 
+    tracing::info!(tag = %SERVER_LOG_TAG, addr = %connection.remote_address(), "opened new connection");
+
     let (intent, signature) =
         intent::handle_intent_exchange_step(&connection, paired_devices).await?;
 

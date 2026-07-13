@@ -75,7 +75,7 @@ where
             DEFAULT_SERVER_ADDR,
             vec![SanType::DnsName(
                 HOSTNAME
-                    .as_str()
+                    .to_local_dns_name()
                     .try_into()
                     .expect("should be valid hostname"),
             )],

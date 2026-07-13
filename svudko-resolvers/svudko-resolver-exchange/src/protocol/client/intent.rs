@@ -30,6 +30,7 @@ pub async fn handle_intent_exchange_step(
         tracing::debug!(tag = %CLIENT_LOG_TAG, "send client identifier");
     }
 
+    let _ = recv_stream.read_u8().await?; // skip single byte used for opening
     let is_okay = recv_stream.read_u8().await?;
 
     if is_okay != STREAM_PROCEED_BYTE {

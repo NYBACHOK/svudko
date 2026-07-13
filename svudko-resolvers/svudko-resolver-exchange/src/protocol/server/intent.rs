@@ -21,6 +21,9 @@ pub async fn handle_intent_exchange_step(
 
     tracing::debug!(tag = %SERVER_LOG_TAG, "opened streams for intent exchange");
 
+    // Write single byte as it required to write something before reading
+    send_stream.write_u8(0).await?;
+
     let res = inner(recv_stream, paired_devices)
         .await
         .inspect_err(|e| tracing::error!(tag = %SERVER_LOG_TAG, err = %e ));

@@ -4,6 +4,7 @@ use crate::models::ClientId;
 pub enum ExchangeEvent {
     None,
     UpdatedClient,
+    PairedWithServer(ClientId),
     PairingRequest((ClientId, tokio::sync::oneshot::Sender<bool>)),
     // Connected(String),
     // SendFile,

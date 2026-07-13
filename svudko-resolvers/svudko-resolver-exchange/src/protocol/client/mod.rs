@@ -21,7 +21,7 @@ pub async fn handle(
     addr: &IpAddr,
     client: ClientId,
     files: &[PathBuf],
-) -> Result<(), anyhow::Error> {
+) -> Result<Option<ClientId>, anyhow::Error> {
     let is_pairing_intent = files.is_empty();
 
     let addr = match *addr {
@@ -39,7 +39,7 @@ pub async fn handle(
 
     let client_id = ClientIdRaw::from(client);
 
-    intent::handle_intent_exchange_step(
+    let server_id = intent::handle_intent_exchange_step(
         &connection,
         &client_id,
         match is_pairing_intent {
@@ -51,7 +51,8 @@ pub async fn handle(
 
     if !is_pairing_intent {
         exchange::handle_files_exchange_step(&connection, files).await?;
+        return Ok(None);
     }
 
-    Ok(())
+    Ok(Some(server_id))
 }

@@ -5,7 +5,7 @@ use std::{
 };
 
 use quinn::{Endpoint, Incoming};
-use svudko_common::ASYNC_RUNTIME;
+use svudko_common::{ASYNC_RUNTIME, POISONED_LOCK_MSG};
 
 use crate::{
     SERVER_LOG_TAG,
@@ -20,6 +20,7 @@ pub fn start_handling_incoming<T, U>(
     endpoint: Endpoint,
     paired_devices: Arc<RwLock<HashSet<String>>>,
     pairing_handle: Arc<T>,
+    client: Arc<RwLock<Option<ClientId>>>,
 ) where
     T: Fn(ClientId) -> U + Sync + Send + 'static,
     U: Future<Output = bool> + Send + Sync + 'static,
@@ -33,11 +34,17 @@ pub fn start_handling_incoming<T, U>(
         while let Some(incoming) = endpoint.accept().await {
             tracing::info!(tag = %SERVER_LOG_TAG, addr = %incoming.remote_address(), "received incoming connection");
 
+            let client = match client.read().expect(POISONED_LOCK_MSG).clone() {
+                Some(client) => client,
+                None => continue,
+            };
+
             let _ = handle(
                 incoming,
                 Arc::clone(&paired_devices),
                 download_dir.clone(),
                 Arc::clone(&pairing_handle),
+                client,
             )
             .await
             .inspect_err(|e| tracing::error!(tag = %SERVER_LOG_TAG, err = ?e));
@@ -50,6 +57,7 @@ async fn handle<T, U>(
     paired_devices: Arc<RwLock<HashSet<String>>>,
     download_dir: PathBuf,
     pairing_handle: Arc<T>,
+    client: ClientId,
 ) -> Result<(), anyhow::Error>
 where
     T: Fn(ClientId) -> U,
@@ -60,7 +68,7 @@ where
     tracing::info!(tag = %SERVER_LOG_TAG, addr = %connection.remote_address(), "opened new connection");
 
     let (intent, signature) =
-        intent::handle_intent_exchange_step(&connection, paired_devices).await?;
+        intent::handle_intent_exchange_step(&connection, paired_devices, client).await?;
 
     tracing::debug!(tag = %SERVER_LOG_TAG,  intent =?intent, addr = %connection.remote_address(), is_paired = %signature.is_some(), "exchanged intents");
 
@@ -70,9 +78,9 @@ where
             let is_paired = pairing_handle(signature).await;
 
             if is_paired {
-                connection.close(OK_STATUS, b"paired")
+                connection.close(OK_STATUS, b"paired");
             } else {
-                connection.close(PAIRING_DENIED_STATUS, b"pairing denied")
+                connection.close(PAIRING_DENIED_STATUS, b"pairing denied");
             }
         }
         (super::CommunicationIntent::Exchange, None) => {

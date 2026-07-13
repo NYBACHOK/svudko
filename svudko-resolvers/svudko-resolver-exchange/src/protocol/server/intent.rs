@@ -10,12 +10,16 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use crate::{
     SERVER_LOG_TAG,
     models::{ClientId, ClientIdRaw},
-    protocol::{CommunicationIntent, STREAM_CLOSE_BYTE, STREAM_PROCEED_BYTE},
+    protocol::{
+        CommunicationIntent, STREAM_CLOSE_BYTE, STREAM_PROCEED_BYTE, deserialize_client_id,
+        serialize_client_id,
+    },
 };
 
 pub async fn handle_intent_exchange_step(
     connection: &Connection,
     paired_devices: Arc<RwLock<HashSet<String>>>,
+    client: ClientId,
 ) -> Result<(CommunicationIntent, Option<ClientId>), anyhow::Error> {
     let (mut send_stream, recv_stream) = connection.accept_bi().await?;
 
@@ -31,6 +35,10 @@ pub async fn handle_intent_exchange_step(
         send_stream.write_u8(STREAM_PROCEED_BYTE).await?;
     }
 
+    let client = ClientIdRaw::from(client);
+
+    serialize_client_id(&mut send_stream, &client).await?;
+
     send_stream.finish()?;
 
     res
@@ -44,17 +52,7 @@ async fn inner(
 
     tracing::debug!(tag = %SERVER_LOG_TAG, intent = ?intent, "received intent");
 
-    let client_id: ClientId = {
-        let msg_size = recv_stream.read_u64().await? as usize;
-
-        let buf = recv_stream
-            .read_chunk(msg_size, true)
-            .await?
-            .ok_or_else(|| anyhow::anyhow!("stream closed before sending its identifier"))?
-            .bytes;
-
-        serde_json::from_slice::<ClientIdRaw>(&buf)?.into()
-    };
+    let client_id = deserialize_client_id(&mut recv_stream).await?;
 
     let is_paired = paired_devices
         .read()

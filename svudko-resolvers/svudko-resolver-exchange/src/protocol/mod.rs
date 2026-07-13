@@ -1,4 +1,7 @@
 use quinn::VarInt;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+use crate::models::{ClientId, ClientIdRaw};
 
 pub mod client;
 pub mod server;
@@ -75,4 +78,31 @@ impl From<CommunicationIntent> for u8 {
             CommunicationIntent::Exchange => 1,
         }
     }
+}
+
+async fn deserialize_client_id(
+    recv_stream: &mut quinn::RecvStream,
+) -> Result<ClientId, anyhow::Error> {
+    let msg_size = recv_stream.read_u64().await? as usize;
+
+    let buf = recv_stream
+        .read_chunk(msg_size, true)
+        .await?
+        .ok_or_else(|| anyhow::anyhow!("stream closed before sending its identifier"))?
+        .bytes;
+
+    Ok(serde_json::from_slice::<ClientIdRaw>(&buf)?.into())
+}
+
+async fn serialize_client_id(
+    send_stream: &mut quinn::SendStream,
+    client: &ClientIdRaw,
+) -> Result<(), anyhow::Error> {
+    let client_buf = serde_json::to_vec(client).expect("can't fail");
+
+    send_stream.write_u64(client_buf.len() as u64).await?;
+
+    send_stream.write_all(&client_buf).await?;
+
+    Ok(())
 }

@@ -35,7 +35,7 @@ mod verification;
 #[derive(Debug)]
 pub struct ExchangeResolver<T> {
     endpoint: Endpoint,
-    client_id: Option<ClientId>,
+    client_id: Arc<RwLock<Option<ClientId>>>,
     _phantom: PhantomData<T>,
     paired_devices: Arc<RwLock<HashSet<String>>>,
     // incoming_connections: Arc<Mutex<HashMap<String, (Connection, RecvStream)>>>,
@@ -81,16 +81,19 @@ where
             )],
         )?;
 
+        let client_id = Default::default();
+
         start_handling_incoming(
             endpoint.clone(),
             Arc::clone(&paired_devices),
             Arc::new(pairing_request),
+            Arc::clone(&client_id),
         );
 
         Ok(Self {
             endpoint,
             paired_devices,
-            client_id: None,
+            client_id,
             _phantom: PhantomData,
         })
     }
@@ -101,7 +104,7 @@ where
     ) -> Result<<Self::Op as Operation>::Output, Self::Err> {
         match op {
             ExchangeRequest::UpdateClientId(client_id) => {
-                self.client_id = Some(client_id.to_owned());
+                *self.client_id.write().expect(POISONED_LOCK_MSG) = Some(client_id.to_owned());
 
                 Ok(ExchangeEvent::UpdatedClient)
             }
@@ -111,32 +114,30 @@ where
                 Ok(ExchangeEvent::None)
             }
             ExchangeRequest::SendFiles((hostname, addr, files)) => {
-                client::handle(
-                    &self.endpoint,
-                    hostname,
-                    addr,
-                    self.client_id
-                        .clone()
-                        .ok_or_else(|| anyhow::anyhow!("not ready to send files"))?,
-                    files,
-                )
-                .await?;
+                let client = self
+                    .client_id
+                    .read()
+                    .expect(POISONED_LOCK_MSG)
+                    .clone()
+                    .ok_or_else(|| anyhow::anyhow!("not ready to send files"))?;
+
+                let _ = client::handle(&self.endpoint, hostname, addr, client, files).await?;
 
                 Ok(ExchangeEvent::None)
             }
             ExchangeRequest::Pair((hostname, addr)) => {
-                client::handle(
-                    &self.endpoint,
-                    hostname,
-                    addr,
-                    self.client_id
-                        .clone()
-                        .ok_or_else(|| anyhow::anyhow!("not ready to send files"))?,
-                    &[],
-                )
-                .await?;
+                let client = self
+                    .client_id
+                    .read()
+                    .expect(POISONED_LOCK_MSG)
+                    .clone()
+                    .ok_or_else(|| anyhow::anyhow!("not ready to send files"))?;
 
-                Ok(ExchangeEvent::None)
+                let server_id = client::handle(&self.endpoint, hostname, addr, client, &[])
+                    .await?
+                    .expect("pairing always return server id");
+
+                Ok(ExchangeEvent::PairedWithServer(server_id))
             }
         }
     }

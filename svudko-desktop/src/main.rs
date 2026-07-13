@@ -127,6 +127,19 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     });
 
+    app_logic.on_pair_response({
+        let core = Arc::clone(&core);
+
+        move |Hostname { name }, is_pair| {
+            core.update(Event::Exchange(
+                svudko_core::event::exchange::ExchangeRequestEvent::PairResponse((
+                    name.to_string().into(),
+                    is_pair,
+                )),
+            ));
+        }
+    });
+
     core.update(Event::Initialize);
     app.run()?;
 

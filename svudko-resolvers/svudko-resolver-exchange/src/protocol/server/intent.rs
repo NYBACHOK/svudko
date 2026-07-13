@@ -63,7 +63,6 @@ async fn inner(
 
     let client_id = match intent {
         CommunicationIntent::Pair if is_paired => None,
-        CommunicationIntent::Exchange if is_paired => None,
         _ => Some(client_id),
     };
 

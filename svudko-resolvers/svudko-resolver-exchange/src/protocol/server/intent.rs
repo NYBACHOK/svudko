@@ -53,9 +53,7 @@ async fn inner(
             .ok_or_else(|| anyhow::anyhow!("stream closed before sending its identifier"))?
             .bytes;
 
-        let archived = rkyv::access::<rkyv::Archived<ClientIdRaw>, rkyv::rancor::Error>(&buf)?;
-
-        rkyv::deserialize::<_, rkyv::rancor::Error>(archived)?.into()
+        serde_json::from_slice::<ClientIdRaw>(&buf)?.into()
     };
 
     let is_paired = paired_devices

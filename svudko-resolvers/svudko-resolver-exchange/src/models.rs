@@ -6,7 +6,7 @@ pub struct ClientId {
     pub id: String,
 }
 
-#[derive(rkyv::Serialize, rkyv::Deserialize, rkyv::Archive)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub(crate) struct ClientIdRaw {
     pub hostname: String,
     pub id: String,

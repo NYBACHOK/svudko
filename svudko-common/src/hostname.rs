@@ -39,7 +39,10 @@ impl AsRef<String> for Hostname {
 
 impl Hostname {
     pub fn new(value: impl Into<String>) -> Self {
-        let value = value.into().replace(LOCAL_HOSTNAME_PREFIX, "");
+        let value = value
+            .into()
+            .replace(LOCAL_HOSTNAME_PREFIX, "")
+            .replace(".local", "");
 
         Self(value)
     }

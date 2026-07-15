@@ -20,7 +20,7 @@ tracing = { version = "0.1", features = [] }
 tracing-subscriber = { version = "0.3", features = [] }
 
 # networking
-quinn = "0.11"
+quinn = { version = "0.11", features = ["rustls-log"]}
 mdns-sd = "0.20"
 
 # crypto

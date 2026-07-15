@@ -1,12 +1,9 @@
 use std::{io::Write, path::PathBuf};
 
 use quinn::Connection;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::AsyncReadExt;
 
-use crate::{
-    SERVER_LOG_TAG,
-    protocol::{EXCHANGE_FILE_CHUNK_SIZE, STREAM_PROCEED_BYTE},
-};
+use crate::{SERVER_LOG_TAG, protocol::EXCHANGE_FILE_CHUNK_SIZE};
 
 pub async fn handle_files_exchange_step(
     connection: &Connection,
@@ -44,9 +41,6 @@ pub async fn handle_files_exchange_step(
 
         tracing::debug!(tag = %SERVER_LOG_TAG, filename = %filename, "saved file");
     }
-
-    let mut stream = connection.open_uni().await?;
-    stream.write_u8(STREAM_PROCEED_BYTE).await?;
 
     Ok(())
 }

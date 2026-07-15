@@ -1,12 +1,9 @@
 use std::{fs::File, io::Read, os::unix::ffi::OsStrExt, path::PathBuf};
 
 use quinn::Connection;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::io::AsyncWriteExt;
 
-use crate::{
-    CLIENT_LOG_TAG,
-    protocol::{EXCHANGE_FILE_CHUNK_SIZE, STREAM_PROCEED_BYTE},
-};
+use crate::protocol::EXCHANGE_FILE_CHUNK_SIZE;
 
 pub async fn handle_files_exchange_step(
     connection: &Connection,
@@ -47,17 +44,6 @@ pub async fn handle_files_exchange_step(
 
         stream.flush().await?;
         stream.finish()?;
-    }
-
-    let mut stream = connection.accept_uni().await?;
-
-    let is_okay = stream.read_u8().await?;
-
-    if is_okay != STREAM_PROCEED_BYTE {
-        tracing::error!(tag = %CLIENT_LOG_TAG, "server signaled to close connection after file sending");
-        return Err(anyhow::anyhow!(
-            "server indicated error after files sending"
-        ));
     }
 
     Ok(())

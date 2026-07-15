@@ -1,9 +1,12 @@
 use std::{io::Write, path::PathBuf};
 
 use quinn::Connection;
-use tokio::io::AsyncReadExt;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
-use crate::protocol::EXCHANGE_FILE_CHUNK_SIZE;
+use crate::{
+    SERVER_LOG_TAG,
+    protocol::{EXCHANGE_FILE_CHUNK_SIZE, STREAM_PROCEED_BYTE},
+};
 
 pub async fn handle_files_exchange_step(
     connection: &Connection,
@@ -14,6 +17,8 @@ pub async fn handle_files_exchange_step(
 
         stream.read_u64().await?
     };
+
+    tracing::debug!(tag = %SERVER_LOG_TAG, files_num = %files_num, "received number of files");
 
     for _ in 0..files_num {
         let mut stream = connection.accept_uni().await?;
@@ -27,6 +32,8 @@ pub async fn handle_files_exchange_step(
             .bytes;
         let filename = String::from_utf8_lossy(&buf);
 
+        tracing::debug!(tag = %SERVER_LOG_TAG, filename = %filename, "receiving file");
+
         let mut file = std::fs::File::create(download_dir.join(filename.as_ref()))?;
 
         while let Some(chunk) = stream.read_chunk(EXCHANGE_FILE_CHUNK_SIZE, true).await? {
@@ -34,7 +41,12 @@ pub async fn handle_files_exchange_step(
         }
 
         file.flush()?;
+
+        tracing::debug!(tag = %SERVER_LOG_TAG, filename = %filename, "saved file");
     }
+
+    let mut stream = connection.open_uni().await?;
+    stream.write_u8(STREAM_PROCEED_BYTE).await?;
 
     Ok(())
 }

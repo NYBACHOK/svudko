@@ -51,10 +51,9 @@ pub async fn handle(
 
     if !is_pairing_intent {
         exchange::handle_files_exchange_step(&connection, files).await?;
+        let _ = connection.closed().await;
         return Ok(None);
     }
-
-    let _ = connection.closed().await;
 
     Ok(Some(server_id))
 }

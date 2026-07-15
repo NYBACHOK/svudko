@@ -42,8 +42,8 @@ impl Hostname {
     pub fn new(value: impl Into<String>) -> Self {
         let value = value
             .into()
-            .replace(DNS_HOSTNAME_PREFIX, "")
-            .replace(MDNS_HOSTNAME_PREFIX, "");
+            .replace(MDNS_HOSTNAME_PREFIX, "")
+            .replace(DNS_HOSTNAME_PREFIX, "");
 
         Self(value)
     }

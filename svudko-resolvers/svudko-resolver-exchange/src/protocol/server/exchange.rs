@@ -42,5 +42,8 @@ pub async fn handle_files_exchange_step(
         tracing::debug!(tag = %SERVER_LOG_TAG, filename = %filename, "saved file");
     }
 
+    let mut stream = connection.accept_uni().await?;
+    let _ = stream.read_u8().await?;
+
     Ok(())
 }

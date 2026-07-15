@@ -3,7 +3,7 @@ use std::{fs::File, io::Read, os::unix::ffi::OsStrExt, path::PathBuf};
 use quinn::Connection;
 use tokio::io::AsyncWriteExt;
 
-use crate::protocol::EXCHANGE_FILE_CHUNK_SIZE;
+use crate::protocol::{EXCHANGE_FILE_CHUNK_SIZE, STREAM_PROCEED_BYTE};
 
 pub async fn handle_files_exchange_step(
     connection: &Connection,
@@ -45,6 +45,9 @@ pub async fn handle_files_exchange_step(
         stream.flush().await?;
         stream.finish()?;
     }
+
+    let mut stream = connection.open_uni().await?;
+    stream.write_u8(STREAM_PROCEED_BYTE).await?;
 
     Ok(())
 }

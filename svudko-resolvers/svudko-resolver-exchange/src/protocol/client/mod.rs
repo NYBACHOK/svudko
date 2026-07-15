@@ -54,5 +54,7 @@ pub async fn handle(
         return Ok(None);
     }
 
+    let _ = connection.closed().await;
+
     Ok(Some(server_id))
 }

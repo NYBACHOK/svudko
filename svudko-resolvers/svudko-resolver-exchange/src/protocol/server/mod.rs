@@ -87,7 +87,9 @@ where
             connection.close(PAIRING_REQUIRED_GOT_NO_ID_STATUS, b"need pairing")
         }
         (super::CommunicationIntent::Exchange, Some(_)) => {
-            exchange::handle_files_exchange_step(&connection, download_dir).await?
+            exchange::handle_files_exchange_step(&connection, download_dir).await?;
+
+            connection.close(OK_STATUS, b"received all files");
         }
     }
 

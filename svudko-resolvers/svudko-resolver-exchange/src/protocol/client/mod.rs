@@ -31,9 +31,7 @@ pub async fn handle(
 
     tracing::debug!(tag = %CLIENT_LOG_TAG, addr = %addr, "creating connection");
 
-    let connection = endpoint
-        .connect(addr, &hostname.to_local_dns_name())?
-        .await?;
+    let connection = endpoint.connect(addr, &hostname.to_dns_name())?.await?;
 
     tracing::info!(tag = %CLIENT_LOG_TAG, addr = %addr, "opened new connection");
 

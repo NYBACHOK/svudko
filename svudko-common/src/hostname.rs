@@ -1,6 +1,7 @@
 use std::sync::LazyLock;
 
-pub const LOCAL_HOSTNAME_PREFIX: &str = ".local.";
+pub const DNS_HOSTNAME_PREFIX: &str = ".local";
+pub const MDNS_HOSTNAME_PREFIX: &str = ".local.";
 
 pub static HOSTNAME: LazyLock<Hostname> = LazyLock::new(|| {
     Hostname::new(
@@ -41,15 +42,20 @@ impl Hostname {
     pub fn new(value: impl Into<String>) -> Self {
         let value = value
             .into()
-            .replace(LOCAL_HOSTNAME_PREFIX, "")
-            .replace(".local", "");
+            .replace(DNS_HOSTNAME_PREFIX, "")
+            .replace(MDNS_HOSTNAME_PREFIX, "");
 
         Self(value)
     }
 
     #[must_use]
-    pub fn to_local_dns_name(&self) -> String {
-        format!("{}{LOCAL_HOSTNAME_PREFIX}", self.0)
+    pub fn to_mdns_name(&self) -> String {
+        format!("{}{MDNS_HOSTNAME_PREFIX}", self.0)
+    }
+
+    #[must_use]
+    pub fn to_dns_name(&self) -> String {
+        format!("{}{DNS_HOSTNAME_PREFIX}", self.0)
     }
 
     #[must_use]

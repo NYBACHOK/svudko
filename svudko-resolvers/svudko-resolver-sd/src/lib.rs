@@ -136,7 +136,7 @@ where
         let service_info = ServiceInfo::new(
             MDNS_SERVICE_TYPE,
             &instance_name,
-            &HOSTNAME.to_local_dns_name(),
+            &HOSTNAME.to_mdns_name(),
             "",
             MDNS_SERVICE_PORT,
             Vec::new(),
@@ -209,7 +209,7 @@ where
         hostname: &Hostname,
     ) -> Result<HashSet<mdns_sd::ScopedIp>, ServiceDiscoveryErrors> {
         let rx = self.daemon.resolve_hostname(
-            &hostname.to_local_dns_name(),
+            &hostname.to_mdns_name(),
             Some(OPERATION_TIMEOUT.as_millis() as u64),
         )?;
 

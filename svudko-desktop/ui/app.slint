@@ -3,7 +3,9 @@ import { Icons } from "icons.slint";
 import { MainPanel } from "panels/main.slint";
 import { Home } from "pages/home.slint";
 
-import { ViewModel, Logic } from "./logic.slint";
+import { ViewModel, Logic, TabIndex } from "./logic.slint";
+import { Pairing } from "pages/pairing.slint";
+import { Settings } from "pages/settings.slint";
 
 export component AppWindow inherits Window {
     title: "Svudko";
@@ -19,7 +21,11 @@ export component AppWindow inherits Window {
     HorizontalLayout {
         MainPanel { }
 
-        Home { }
+        if  Logic.current-tab-index == TabIndex.Home: Home { }
+
+        if  Logic.current-tab-index == TabIndex.Pairing: Pairing { }
+
+        if  Logic.current-tab-index == TabIndex.Settings: Settings { }
     }
 }
 

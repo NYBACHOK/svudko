@@ -1,5 +1,7 @@
 export enum TabIndex {
     Home,
+    Pairing,
+    Settings,
 }
 
 export enum PopupIndex {
@@ -26,7 +28,6 @@ export global Logic {
     in-out property <ViewModel> model;
     in-out property <string> error_msg: "";
 
-    callback open_settings();
     callback select_and_send_files(Hostname);
     callback pair_request(Hostname);
     callback pair_response(Hostname, bool);

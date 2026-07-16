@@ -38,7 +38,6 @@ pub struct ExchangeResolver<T> {
     client_id: Arc<RwLock<Option<ClientId>>>,
     _phantom: PhantomData<T>,
     paired_devices: Arc<RwLock<HashSet<String>>>,
-    // incoming_connections: Arc<Mutex<HashMap<String, (Connection, RecvStream)>>>,
 }
 
 pub struct ExchangeResolverOptions<T> {

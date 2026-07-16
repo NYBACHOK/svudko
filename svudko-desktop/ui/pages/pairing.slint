@@ -11,44 +11,30 @@ import { IconBtn } from "../components/icon_button.slint";
 import { Icons } from "../icons.slint";
 import { Divider } from "../components/divider.slint";
 
-export component Home inherits Rectangle {
-    in-out property <[LocalDevices]> discovered_hosts <=> Logic.model.discovered-hosts;
+export component Pairing inherits Rectangle {
+    in-out property <[Hostname]> pairing_requests <=> Logic.model.pairing_requests;
 
     background: Theme.secondary-background;
 
-    if discovered_hosts.length == 0: NoDataImg {
-        text: "No hosts found";
+    padding: Theme.padding;
+
+    if pairing_requests.length == 0: NoDataImg {
+        text: "No pending requests";
     }
 
     ListView {
-        for host[i] in discovered_hosts: CenterLayout {
-
+        for request[i] in pairing_requests: CenterLayout {
             HorizontalLayout {
                 padding: Theme.padding;
                 Text {
 
-                    text: host.hostname.name;
+                    text: request.name;
                     vertical-alignment: center;
                     color: Theme.primary-text-color;
                 }
 
-                if host.paired: IconBtn {
-                    text: "Select Files";
-                    text-color: Theme.secondary-text-color;
-
-                    icon: Icons.directory-arrow-left;
-                    border-color: Theme.dark-text-color;
-                    border-radius: Theme.border-radius;
-
-                    bg-color: Theme.thirdly-brand-color;
-
-                    clicked => {
-                        Logic.select_and_send_files(host.hostname)
-                    }
-                }
-
-                if !host.paired: IconBtn {
-                    text: "Pair";
+                IconBtn {
+                    text: "Accept";
                     text-color: Theme.secondary-text-color;
 
                     icon: Icons.placeholder;
@@ -58,13 +44,24 @@ export component Home inherits Rectangle {
                     bg-color: Theme.thirdly-brand-color;
 
                     clicked => {
-                        Logic.pair_request(host.hostname)
+                        Logic.pair_response(request, true)
                     }
                 }
-            }
 
-            Divider {
-                width: 95%;
+                IconBtn {
+                    text: "Deny";
+                    text-color: Theme.secondary-text-color;
+
+                    icon: Icons.placeholder;
+                    border-color: Theme.dark-text-color;
+                    border-radius: Theme.border-radius;
+
+                    bg-color: Theme.thirdly-brand-color;
+
+                    clicked => {
+                        Logic.pair_response(request, false)
+                    }
+                }
             }
         }
     }

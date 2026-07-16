@@ -54,6 +54,7 @@ rfd = "0.17"
 # even through I use tokio, but slint uses smol, so instead of mixing desktop uses 
 # smol runtime outside of core
 smol = "2.0"
+webbrowser = "1.2"
 
 # local
 svudko-common = { path = "./svudko-common" }

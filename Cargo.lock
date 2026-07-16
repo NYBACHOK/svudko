@@ -6061,6 +6061,7 @@ dependencies = [
  "svudko-resolver-sd",
  "tracing",
  "tracing-subscriber",
+ "webbrowser",
 ]
 
 [[package]]

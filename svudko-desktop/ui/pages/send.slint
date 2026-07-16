@@ -6,59 +6,71 @@ import {
 import { Logic, LocalDevices, Hostname } from "../logic.slint";
 import { Theme } from "../theme.slint";
 import { NoDataImg } from "../components/no_data.slint";
-import { CenterLayout } from "../components/center_layout.slint";
 import { IconBtn } from "../components/icon_button.slint";
 import { Icons } from "../icons.slint";
 import { Divider } from "../components/divider.slint";
 
-export component Home inherits Rectangle {
+export component Send inherits Rectangle {
     in-out property <[LocalDevices]> discovered_hosts <=> Logic.model.discovered-hosts;
 
     background: Theme.secondary-background;
 
     if discovered_hosts.length == 0: NoDataImg {
         text: "No hosts found";
+        image: Icons.wifi;
     }
 
     ListView {
-        for host[i] in discovered_hosts: CenterLayout {
+        for host[i] in discovered_hosts: VerticalLayout {
+            width: 100%;
 
             HorizontalLayout {
+                width: 100%;
+                height: 48px;
                 padding: Theme.padding;
-                Text {
 
+                Text {
                     text: host.hostname.name;
                     vertical-alignment: center;
                     color: Theme.primary-text-color;
                 }
 
-                if host.paired: IconBtn {
-                    text: "Select Files";
-                    text-color: Theme.secondary-text-color;
-
-                    icon: Icons.directory-arrow-left;
-                    border-color: Theme.dark-text-color;
-                    border-radius: Theme.border-radius;
-
-                    bg-color: Theme.thirdly-brand-color;
-
-                    clicked => {
-                        Logic.select_and_send_files(host.hostname)
+                HorizontalLayout {
+                    padding: Theme.padding;
+                    Divider {
+                        width: 2px;
+                        height: Theme.default-font-size;
                     }
                 }
 
-                if !host.paired: IconBtn {
-                    text: "Pair";
+                IconBtn {
+                    text: {
+                        if (host.paired) {
+                            return "Select Files";
+                        } else {
+                            return "Pair";
+                        }
+                    };
                     text-color: Theme.secondary-text-color;
 
-                    icon: Icons.placeholder;
+                    icon: {
+                        if (host.paired) {
+                            return Icons.directory-arrow-left;
+                        } else {
+                            return Icons.pairing_item;
+                        }
+                    };
                     border-color: Theme.dark-text-color;
                     border-radius: Theme.border-radius;
 
                     bg-color: Theme.thirdly-brand-color;
 
                     clicked => {
-                        Logic.pair_request(host.hostname)
+                        if (host.paired) {
+                            Logic.select_and_send_files(host.hostname)
+                        } else {
+                            Logic.pair_request(host.hostname)
+                        }
                     }
                 }
             }

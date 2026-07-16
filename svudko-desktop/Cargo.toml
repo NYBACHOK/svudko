@@ -17,6 +17,7 @@ slint = { workspace = true, default-features = false, features = [
     "log",
 ] }
 rfd.workspace = true
+webbrowser.workspace = true
 dirs.workspace = true
 svudko-core.workspace = true
 smol = { workspace = true }

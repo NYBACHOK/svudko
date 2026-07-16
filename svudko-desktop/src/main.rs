@@ -101,6 +101,9 @@ fn main() -> Result<(), Box<dyn Error>> {
                         .await;
 
                     if let Some(files) = dialog {
+                        if files.is_empty() {
+                            return;
+                        }
                         let files = files.into_iter().map(PathBuf::from).collect();
 
                         core.update(Event::Exchange(
@@ -140,6 +143,10 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     });
 
+    app.global::<Util<'_>>().on_open_url(|url| {
+        let _ = webbrowser::open(&url);
+    });
+
     core.update(Event::Initialize);
     app.run()?;
 
@@ -167,6 +174,7 @@ pub fn setup_logger() {
                 .add_directive("hyper_util=warn".parse().unwrap())
                 .add_directive("winit=info".parse().unwrap())
                 .add_directive("sctk=info".parse().unwrap())
+                .add_directive("mdns_sd=info".parse().unwrap())
                 .add_directive("reqwest=warn".parse().unwrap()),
         );
 

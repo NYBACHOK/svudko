@@ -5,12 +5,13 @@ import { Logic, TabIndex } from "../logic.slint";
 import { Icons } from "../icons.slint";
 import { Divider } from "../components/divider.slint";
 import { Util } from "../components/utils.slint";
+import { Badge } from "../components/badge.slint";
+import { Hostname } from "../logic.slint";
 
 export component VerticalStatusBar inherits Rectangle {
     height: 100%;
     width: Theme.sidebar-width;
     background: Theme.secondary-background;
-    // border-radius: Theme.border-radius;
 
     private property <bool> is-show-tip: true;
     private property <bool> show-icon-hover-background: false;
@@ -19,6 +20,8 @@ export component VerticalStatusBar inherits Rectangle {
     in-out property <length> v-padding-bottom;
     in-out property v-padding <=> vbox.padding;
     in-out property v-spacing <=> vbox.spacing;
+
+    in-out property <[Hostname]> pairing_requests <=> Logic.model.pairing_requests;
 
     VerticalLayout {
         alignment: space-between;
@@ -29,16 +32,16 @@ export component VerticalStatusBar inherits Rectangle {
             padding-top: Theme.padding * 2;
 
             IconBtn {
-                icon: Icons.home;
+                icon: Icons.send;
                 icon-size: root.icon-size;
                 show-icon-hover-background: root.show-icon-hover-background;
-                colorize: Logic.current-tab-index == TabIndex.Home ? Theme.thirdly-brand-color : Theme.icon-color;
+                colorize: Logic.current-tab-index == TabIndex.Send ? Theme.thirdly-brand-color : Theme.icon-color;
                 is-show-tip: root.is-show-tip;
                 tip-position: root.tip-position;
-                tip: "Home";
+                tip: "Send";
 
                 clicked => {
-                    Logic.switch-tab(TabIndex.Home);
+                    Logic.switch-tab(TabIndex.Send);
                 }
             }
         }
@@ -66,9 +69,10 @@ export component VerticalStatusBar inherits Rectangle {
                 padding-bottom: Theme.padding * 2;
 
                 IconBtn {
-                    icon: Icons.settings;
+                    icon: Icons.pairing;
                     icon-size: root.icon-size;
                     show-icon-hover-background: root.show-icon-hover-background;
+                    colorize: Logic.current-tab-index == TabIndex.Pairing ? Theme.thirdly-brand-color : Theme.icon-color;
                     is-show-tip: root.is-show-tip;
                     tip-position: root.tip-position;
                     tip: "Pairing";
@@ -76,18 +80,25 @@ export component VerticalStatusBar inherits Rectangle {
                     clicked => {
                         Logic.switch-tab(TabIndex.Pairing);
                     }
+
+                    if pairing_requests.length != 0: Badge {
+                        text: pairing_requests.length;
+                        target-component-width: parent.width;
+                        target-component-height: parent.height;
+                    }
                 }
 
                 IconBtn {
                     icon: Icons.settings;
                     icon-size: root.icon-size;
                     show-icon-hover-background: root.show-icon-hover-background;
+                    colorize: Logic.current-tab-index == TabIndex.Settings ? Theme.thirdly-brand-color : Theme.icon-color;
                     is-show-tip: root.is-show-tip;
                     tip-position: root.tip-position;
                     tip: "Settings";
 
                     clicked => {
-                         Logic.switch-tab(TabIndex.Settings);
+                        Logic.switch-tab(TabIndex.Settings);
                     }
                 }
 
@@ -100,7 +111,7 @@ export component VerticalStatusBar inherits Rectangle {
                     tip: "Github";
 
                     clicked => {
-                        Util.open-url("Default", "https://github.com/NYBACHOK/svudko");
+                        Util.open-url("https://github.com/NYBACHOK/svudko");
                     }
                 }
             }

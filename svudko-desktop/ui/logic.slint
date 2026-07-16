@@ -1,5 +1,5 @@
 export enum TabIndex {
-    Home,
+    Send,
     Pairing,
     Settings,
 }
@@ -24,7 +24,7 @@ export struct ViewModel {
 }
 
 export global Logic {
-    in-out property <TabIndex> current-tab-index: TabIndex.Home;
+    in-out property <TabIndex> current-tab-index: TabIndex.Send;
     in-out property <ViewModel> model;
     in-out property <string> error_msg: "";
 
